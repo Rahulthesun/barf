@@ -1,0 +1,39 @@
+# Node modules (all folders)
+node_modules/
+**/node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Build output
+dist/
+build/
+.next/
+out/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+
+# Supabase (optional: keep if you don't want schema tracked)
+# supabase_schema.sql
+
+# Claude folder (if it's local tool data)
+.claude/
+
+# Misc
+coverage/
+.cache/
