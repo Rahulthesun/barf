@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
+import { runDeployment, tearDownDeployment, missingAzureConfig } from '../services/azureContainerService';
 
 function getSupabase() {
   return createClient(
@@ -8,51 +9,55 @@ function getSupabase() {
   );
 }
 
-/** GET /api/deploy — list all deployments (filtered by user_id when auth lands) */
+// ─── GET /api/deploy — list all deployments ──────────────────────────────────
+
 export async function listDeployments(req: Request, res: Response): Promise<void> {
-  const supabase = getSupabase();
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('deployments')
     .select('id, app_id, app_slug, status, live_url, azure_app_name, created_at, updated_at')
     .order('created_at', { ascending: false })
     .limit(50);
 
-  if (error) {
-    res.status(500).json({ error: error.message });
-    return;
-  }
-
+  if (error) { res.status(500).json({ error: error.message }); return; }
   res.json({ deployments: data ?? [] });
 }
 
-/** POST /api/deploy — create a deployment record (Azure wiring TBD) */
+// ─── POST /api/deploy — kick off a new deployment ────────────────────────────
+
 export async function createDeployment(req: Request, res: Response): Promise<void> {
   const { app_slug, app_id: bodyAppId } = req.body as { app_slug?: string; app_id?: string };
 
-  if (!app_slug) {
-    res.status(400).json({ error: 'Missing app_slug' });
+  if (!app_slug) { res.status(400).json({ error: 'Missing app_slug' }); return; }
+
+  // Check Azure config is present before accepting the job
+  const configErr = missingAzureConfig();
+  if (configErr) {
+    res.status(503).json({ error: configErr });
     return;
   }
 
   const supabase = getSupabase();
 
-  // Verify app exists (accept a known app_id to skip lookup)
-  const query = supabase.from('oss_apps').select('id, name, slug, docker_image, default_port');
+  // Look up the app
+  const q = supabase.from('oss_apps').select('id, name, slug, docker_image, default_port, deploy_env');
   const { data: app, error: appErr } = bodyAppId
-    ? await query.eq('id', bodyAppId).maybeSingle()
-    : await query.eq('slug', app_slug).maybeSingle();
+    ? await q.eq('id', bodyAppId).maybeSingle()
+    : await q.eq('slug', app_slug).maybeSingle();
 
-  if (appErr || !app) {
-    res.status(404).json({ error: 'App not found' });
+  if (appErr || !app) { res.status(404).json({ error: 'App not found' }); return; }
+
+  const dockerImage = (app as any).docker_image as string | null;
+  if (!dockerImage) {
+    res.status(400).json({ error: `No Docker image configured for ${app_slug} yet.` });
     return;
   }
 
-  // Create deployment record
+  // Create the deployment record (queued)
   const { data: deployment, error: depErr } = await supabase
     .from('deployments')
     .insert({
-      app_id:     app.id,
-      app_slug:   app.slug,
+      app_id:     (app as any).id,
+      app_slug:   (app as any).slug,
       status:     'queued',
       updated_at: new Date().toISOString(),
     })
@@ -64,30 +69,79 @@ export async function createDeployment(req: Request, res: Response): Promise<voi
     return;
   }
 
-  // TODO: Kick off Azure Container Apps provisioning here
-  // azureService.deployContainer({ deploymentId, dockerImage, port })
+  const deploymentId = (deployment as any).id as string;
+
+  // ── Fire & forget — responds immediately, container provisions in background ─
+  setImmediate(() => {
+    runDeployment({
+      deploymentId,
+      appSlug:    (app as any).slug as string,
+      dockerImage,
+      port:       (app as any).default_port as number ?? 3000,
+      deployEnv:  (app as any).deploy_env as Record<string, string> ?? {},
+    }).catch(err => console.error('[deploy] Unhandled error:', err));
+  });
 
   res.status(202).json({
-    id:      (deployment as any).id,
+    id:      deploymentId,
     status:  'queued',
-    message: `Deployment queued for ${app.name}. Hosting coming soon.`,
+    message: `Deployment started for ${(app as any).name}. Poll /api/deploy/${deploymentId} for status.`,
   });
 }
 
-/** GET /api/deploy/:id — poll deployment status */
+// ─── GET /api/deploy/:id — poll status ───────────────────────────────────────
+
 export async function getDeploymentStatus(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
 
   const { data, error } = await getSupabase()
     .from('deployments')
-    .select('id, app_slug, status, live_url, created_at, updated_at')
+    .select('id, app_slug, status, live_url, azure_app_name, created_at, updated_at')
     .eq('id', id)
     .maybeSingle();
 
-  if (error || !data) {
-    res.status(404).json({ error: 'Deployment not found' });
-    return;
+  if (error || !data) { res.status(404).json({ error: 'Deployment not found' }); return; }
+  res.json(data);
+}
+
+// ─── DELETE /api/deploy/:id — tear down a container ──────────────────────────
+
+export async function deleteDeployment(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const supabase = getSupabase();
+
+  const { data, error } = await supabase
+    .from('deployments')
+    .select('azure_app_name, status')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error || !data) { res.status(404).json({ error: 'Deployment not found' }); return; }
+
+  const azureName = (data as any).azure_app_name as string | null;
+
+  // Mark as deleting immediately
+  await supabase
+    .from('deployments')
+    .update({ status: 'deleting', updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  // Tear down in background if we have an Azure container to delete
+  if (azureName) {
+    setImmediate(() => {
+      tearDownDeployment(azureName)
+        .then(() => supabase.from('deployments').delete().eq('id', id))
+        .catch(async err => {
+          console.error('[teardown] Failed:', err);
+          await supabase
+            .from('deployments')
+            .update({ status: 'failed', updated_at: new Date().toISOString() })
+            .eq('id', id);
+        });
+    });
+  } else {
+    await supabase.from('deployments').delete().eq('id', id);
   }
 
-  res.json({ deployment: data });
+  res.json({ message: 'Tear-down initiated.' });
 }

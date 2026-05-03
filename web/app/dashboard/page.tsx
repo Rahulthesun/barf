@@ -13,6 +13,7 @@ import {
   RefreshCw,
   ExternalLink,
   Server,
+  Trash2,
 } from "lucide-react";
 import { GithubIcon } from "../components/GithubIcon";
 
@@ -68,7 +69,7 @@ function timeSince(iso: string) {
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
-function DeploymentCard({ dep, onRefresh }: { dep: Deployment; onRefresh: () => void }) {
+function DeploymentCard({ dep, onRefresh, onDelete }: { dep: Deployment; onRefresh: () => void; onDelete: (id: string) => void }) {
   return (
     <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4">
       {/* header row */}
@@ -133,6 +134,18 @@ function DeploymentCard({ dep, onRefresh }: { dep: Deployment; onRefresh: () => 
               View app <ArrowRight className="w-3 h-3" />
             </Link>
           )}
+          {(dep.status === "live" || dep.status === "failed") && (
+            <button
+              onClick={() => {
+                if (confirm(`Tear down ${dep.app_slug}? This will delete the container.`)) {
+                  onDelete(dep.id);
+                }
+              }}
+              className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition-colors ml-2"
+            >
+              <Trash2 className="w-3 h-3" /> Tear down
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -181,6 +194,11 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    fetchDeployments();
+  }, [fetchDeployments]);
+
+  const deleteDeployment = useCallback(async (id: string) => {
+    await fetch(`${API}/api/deploy/${id}`, { method: "DELETE" });
     fetchDeployments();
   }, [fetchDeployments]);
 
@@ -271,7 +289,7 @@ export default function DashboardPage() {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {byStatus.deploying.map((d) => (
-                    <DeploymentCard key={d.id} dep={d} onRefresh={fetchDeployments} />
+                    <DeploymentCard key={d.id} dep={d} onRefresh={fetchDeployments} onDelete={deleteDeployment} />
                   ))}
                 </div>
               </section>
@@ -285,7 +303,7 @@ export default function DashboardPage() {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {byStatus.live.map((d) => (
-                    <DeploymentCard key={d.id} dep={d} onRefresh={fetchDeployments} />
+                    <DeploymentCard key={d.id} dep={d} onRefresh={fetchDeployments} onDelete={deleteDeployment} />
                   ))}
                 </div>
               </section>
@@ -299,7 +317,7 @@ export default function DashboardPage() {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {byStatus.failed.map((d) => (
-                    <DeploymentCard key={d.id} dep={d} onRefresh={fetchDeployments} />
+                    <DeploymentCard key={d.id} dep={d} onRefresh={fetchDeployments} onDelete={deleteDeployment} />
                   ))}
                 </div>
               </section>
