@@ -14,6 +14,7 @@ function getSupabase() {
 
 export async function listDeployments(req: Request, res: Response): Promise<void> {
   const supabase = getSupabase();
+  const userId = (req as any).user.id as string;
 
   // Mark queued deployments older than 15 min as failed (server never picked them up)
   const stale = new Date(Date.now() - 15 * 60 * 1000).toISOString();
@@ -21,11 +22,13 @@ export async function listDeployments(req: Request, res: Response): Promise<void
     .from('deployments')
     .update({ status: 'failed', updated_at: new Date().toISOString() })
     .eq('status', 'queued')
+    .eq('user_id', userId)
     .lt('created_at', stale);
 
   const { data, error } = await supabase
     .from('deployments')
     .select('id, app_id, app_slug, status, live_url, azure_app_name, live_since, last_accessed_at, created_at, updated_at')
+    .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(50);
 

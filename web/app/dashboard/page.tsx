@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { AppIcon } from "../components/AppIcon";
 import { Nav } from "../components/Nav";
+import { createClient } from "@/utils/supabase/client";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 const AUTO_STOP_HOURS = 4;
@@ -290,9 +291,15 @@ export default function DashboardPage() {
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [loading, setLoading] = useState(true);
 
+  async function authHeaders(): Promise<HeadersInit> {
+    const { data: { session } } = await createClient().auth.getSession();
+    return session ? { "Authorization": `Bearer ${session.access_token}` } : {};
+  }
+
   const fetchDeployments = useCallback(async () => {
     try {
-      const r = await fetch(`${API}/api/deploy`);
+      const headers = await authHeaders();
+      const r = await fetch(`${API}/api/deploy`, { headers });
       if (!r.ok) throw new Error("Failed");
       const data = await r.json();
       setDeployments(data.deployments ?? []);
@@ -308,24 +315,28 @@ export default function DashboardPage() {
   }, [fetchDeployments]);
 
   const deleteDeployment = useCallback(async (id: string) => {
-    await fetch(`${API}/api/deploy/${id}`, { method: "DELETE" });
+    const headers = await authHeaders();
+    await fetch(`${API}/api/deploy/${id}`, { method: "DELETE", headers });
     fetchDeployments();
   }, [fetchDeployments]);
 
   const stopDeployment = useCallback(async (id: string) => {
-    await fetch(`${API}/api/deploy/${id}/stop`, { method: "POST" });
+    const headers = await authHeaders();
+    await fetch(`${API}/api/deploy/${id}/stop`, { method: "POST", headers });
     setDeployments(prev => prev.map(d => d.id === id ? { ...d, status: "stopping" as DeployStatus } : d));
     setTimeout(fetchDeployments, 3000);
   }, [fetchDeployments]);
 
   const startDeployment = useCallback(async (id: string) => {
-    await fetch(`${API}/api/deploy/${id}/start`, { method: "POST" });
+    const headers = await authHeaders();
+    await fetch(`${API}/api/deploy/${id}/start`, { method: "POST", headers });
     setDeployments(prev => prev.map(d => d.id === id ? { ...d, status: "starting" as DeployStatus } : d));
     setTimeout(fetchDeployments, 3000);
   }, [fetchDeployments]);
 
   const keepAlive = useCallback(async (id: string) => {
-    await fetch(`${API}/api/deploy/${id}/keepalive`, { method: "POST" });
+    const headers = await authHeaders();
+    await fetch(`${API}/api/deploy/${id}/keepalive`, { method: "POST", headers });
     const now = new Date().toISOString();
     setDeployments(prev => prev.map(d => d.id === id ? { ...d, last_accessed_at: now } : d));
   }, []);
