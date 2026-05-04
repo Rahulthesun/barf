@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
+import { getDeployConfig } from '../services/deployConfigs';
 
 function getSupabase() {
   return createClient(
@@ -33,7 +34,15 @@ export async function listApps(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  res.json({ apps: data ?? [] });
+  const apps = (data ?? []).map((app: any) => {
+    const config = getDeployConfig(app.slug);
+    return {
+      ...app,
+      deployable: config ? config.deployable : !!app.docker_image,
+    };
+  });
+
+  res.json({ apps });
 }
 
 /** GET /api/apps/categories — unique category list */
@@ -72,5 +81,11 @@ export async function getApp(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  res.json({ app: data });
+  const config = getDeployConfig(data.slug);
+  res.json({
+    app: {
+      ...data,
+      deployable: config ? config.deployable : !!data.docker_image,
+    },
+  });
 }

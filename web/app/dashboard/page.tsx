@@ -19,8 +19,8 @@ import {
   Zap,
   Moon,
 } from "lucide-react";
-import { GithubIcon } from "../components/GithubIcon";
 import { AppIcon } from "../components/AppIcon";
+import { Nav } from "../components/Nav";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 const AUTO_STOP_HOURS = 4;
@@ -46,7 +46,7 @@ function statusBadge(status: DeployStatus) {
   const map: Record<DeployStatus, { label: string; cls: string; icon: React.ReactNode }> = {
     queued: {
       label: "Queued",
-      cls: "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700",
+      cls: "bg-[#F0F0F0] dark:bg-zinc-800 text-[#7D7D7D] border-[#CFCFCF] dark:border-[#CFCFCF]",
       icon: <Clock className="w-3 h-3" />,
     },
     deploying: {
@@ -66,7 +66,7 @@ function statusBadge(status: DeployStatus) {
     },
     stopped: {
       label: "Sleeping",
-      cls: "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700",
+      cls: "bg-[#F0F0F0] dark:bg-zinc-800 text-[#7D7D7D] border-[#CFCFCF] dark:border-[#CFCFCF]",
       icon: <Moon className="w-3 h-3" />,
     },
     starting: {
@@ -132,16 +132,16 @@ function DeploymentCard({
     : 0;
 
   return (
-    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4">
+    <div className="rounded-2xl border border-[#CFCFCF] dark:border-[#CFCFCF] bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4">
       {/* header row */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
-            <AppIcon appSlug={dep.app_slug} fallbackLetter={dep.app_slug.charAt(0).toUpperCase()} size={18} className="text-zinc-600 dark:text-zinc-300" />
+          <div className="w-9 h-9 rounded-xl bg-[#F0F0F0] dark:bg-zinc-800 flex items-center justify-center shrink-0">
+            <AppIcon appSlug={dep.app_slug} fallbackLetter={dep.app_slug.charAt(0).toUpperCase()} size={18} className="text-[#545454] dark:text-[#CFCFCF]" />
           </div>
           <div className="min-w-0">
             <p className="font-semibold text-[15px] truncate">{dep.app_slug}</p>
-            <p className="text-xs text-zinc-400 font-mono mt-0.5 truncate">{dep.id.slice(0, 8)}…</p>
+            <p className="text-xs text-[#7D7D7D] font-mono mt-0.5 truncate">{dep.id.slice(0, 8)}…</p>
           </div>
         </div>
         {statusBadge(dep.status)}
@@ -153,7 +153,7 @@ function DeploymentCard({
           href={dep.live_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-xs font-mono text-emerald-600 dark:text-emerald-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors truncate"
+          className="inline-flex items-center gap-2 rounded-lg border border-[#CFCFCF] dark:border-[#CFCFCF] bg-white dark:bg-zinc-800 px-3 py-2 text-xs font-mono text-emerald-600 dark:text-emerald-400 hover:bg-[#F0F0F0] dark:hover:bg-zinc-700 transition-colors truncate"
         >
           <Globe className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">{dep.live_url}</span>
@@ -162,28 +162,28 @@ function DeploymentCard({
       )}
 
       {dep.azure_app_name && !dep.live_url && dep.status !== "stopped" && (
-        <p className="text-xs font-mono text-zinc-400 truncate">
-          <span className="text-zinc-300 dark:text-zinc-600">container:</span> {dep.azure_app_name}
+        <p className="text-xs font-mono text-[#7D7D7D] truncate">
+          <span className="text-[#CFCFCF] dark:text-[#545454]">container:</span> {dep.azure_app_name}
         </p>
       )}
 
       {/* auto-shutdown countdown */}
       {dep.status === "live" && shutdownMs > 0 && (
-        <p className="text-xs font-mono text-zinc-400">
-          Stops in <span className="text-zinc-600 dark:text-zinc-300">{fmtCountdown(shutdownMs)}</span>
+        <p className="text-xs font-mono text-[#7D7D7D]">
+          Stops in <span className="text-[#545454] dark:text-[#CFCFCF]">{fmtCountdown(shutdownMs)}</span>
         </p>
       )}
 
       {/* footer row */}
-      <div className="flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-800">
-        <span className="text-xs text-zinc-400 font-mono">{timeSince(dep.created_at)}</span>
+      <div className="flex items-center justify-between pt-1 border-t border-[#CFCFCF] dark:border-[#CFCFCF]">
+        <span className="text-xs text-[#7D7D7D] font-mono">{timeSince(dep.created_at)}</span>
         <div className="flex items-center gap-2 flex-wrap justify-end">
 
           {/* deploying/transient — just refresh */}
           {isTransient && (
             <button
               onClick={onRefresh}
-              className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+              className="inline-flex items-center gap-1 text-xs text-[#7D7D7D] hover:text-[#545454] dark:hover:text-[#CFCFCF] transition-colors"
             >
               <RefreshCw className="w-3 h-3" /> Refresh
             </button>
@@ -194,20 +194,20 @@ function DeploymentCard({
             <>
               <button
                 onClick={() => onKeepAlive(dep.id)}
-                className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                className="inline-flex items-center gap-1 text-xs text-[#7D7D7D] hover:text-[#545454] dark:hover:text-[#CFCFCF] transition-colors"
                 title="Reset auto-shutdown timer"
               >
                 <Zap className="w-3 h-3 text-yellow-500" /> Keep alive
               </button>
               <button
                 onClick={() => onStop(dep.id)}
-                className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                className="inline-flex items-center gap-1 text-xs text-[#7D7D7D] hover:text-[#545454] dark:hover:text-[#CFCFCF] transition-colors"
               >
                 <Square className="w-3 h-3" /> Stop
               </button>
               <Link
                 href={`/browse/${dep.app_slug}`}
-                className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                className="inline-flex items-center gap-1 text-xs text-[#7D7D7D] hover:text-[#545454] dark:hover:text-[#CFCFCF] transition-colors"
               >
                 Open <ArrowRight className="w-3 h-3" />
               </Link>
@@ -266,18 +266,18 @@ function DeploymentCard({
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-32 gap-5 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-        <Server className="w-7 h-7 text-zinc-400" />
+      <div className="w-16 h-16 rounded-2xl bg-[#F0F0F0] dark:bg-zinc-800 flex items-center justify-center">
+        <Server className="w-7 h-7 text-[#7D7D7D]" />
       </div>
       <div>
         <h3 className="text-lg font-semibold">No deployments yet</h3>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs">
+        <p className="text-sm text-[#7D7D7D] dark:text-[#7D7D7D] mt-1 max-w-xs">
           Browse open-source alternatives and hit &quot;Host This&quot; to spin up your first deployment.
         </p>
       </div>
       <Link
         href="/browse"
-        className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 font-semibold px-6 py-3 hover:opacity-90 transition-opacity text-sm"
+        className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white text-zinc-50 dark:text-[#252525] font-semibold px-6 py-3 hover:opacity-90 transition-opacity text-sm"
       >
         Browse apps
         <ArrowRight className="w-4 h-4" />
@@ -355,39 +355,9 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-[#0a0a0a] text-zinc-900 dark:text-zinc-50">
+    <div className="min-h-screen flex flex-col bg-white text-[#252525]">
 
-      {/* ── Nav ───────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/90 dark:bg-[#0a0a0a]/90 backdrop-blur">
-        <div className="max-w-6xl mx-auto px-4 sm:px-8 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <Image src="/assets/logo.jpg" alt="barf" width={22} height={22} className="rounded-sm object-contain" />
-            <span className="font-mono text-sm font-bold tracking-tight">barf.</span>
-          </Link>
-
-          <nav className="hidden sm:flex items-center gap-6">
-            {[["Browse", "/browse"], ["Pricing", "/#pricing"], ["Docs", "#"]].map(([label, href]) => (
-              <Link key={label} href={href!}
-                className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">
-                {label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <Link href="https://github.com" target="_blank"
-              className="hidden sm:inline-flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors px-2 py-1">
-              <GithubIcon className="w-4 h-4" />
-              Star
-            </Link>
-            <Link href="/browse"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity">
-              Browse Apps
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Nav />
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-8 py-10">
 
@@ -395,13 +365,13 @@ export default function DashboardPage() {
         <div className="flex items-start justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">My Deployments</h1>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1.5">
+            <p className="text-[#7D7D7D] dark:text-[#7D7D7D] text-sm mt-1.5">
               {loading ? "Loading…" : `${deployments.length} total · ${live.length} live · ${stopped.length} sleeping`}
             </p>
           </div>
           <button
             onClick={fetchDeployments}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 text-sm font-medium px-3.5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#CFCFCF] dark:border-[#CFCFCF] bg-white dark:bg-zinc-900 text-[#545454] dark:text-[#7D7D7D] text-sm font-medium px-3.5 py-2 hover:bg-[#F8F8F8] dark:hover:bg-zinc-800 transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Refresh
@@ -411,7 +381,7 @@ export default function DashboardPage() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 h-40 animate-pulse" />
+              <div key={i} className="rounded-2xl border border-[#CFCFCF] dark:border-[#CFCFCF] bg-white dark:bg-zinc-900 p-5 h-40 animate-pulse" />
             ))}
           </div>
         ) : deployments.length === 0 ? (
@@ -422,7 +392,7 @@ export default function DashboardPage() {
             {/* In progress */}
             {active.length > 0 && (
               <section>
-                <h2 className="text-[11px] font-mono uppercase tracking-widest text-zinc-400 mb-4">
+                <h2 className="text-[11px] font-mono uppercase tracking-widest text-[#7D7D7D] mb-4">
                   In progress ({active.length})
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -434,7 +404,7 @@ export default function DashboardPage() {
             {/* Live */}
             {live.length > 0 && (
               <section>
-                <h2 className="text-[11px] font-mono uppercase tracking-widest text-zinc-400 mb-4">
+                <h2 className="text-[11px] font-mono uppercase tracking-widest text-[#7D7D7D] mb-4">
                   Live ({live.length})
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -446,7 +416,7 @@ export default function DashboardPage() {
             {/* Sleeping */}
             {stopped.length > 0 && (
               <section>
-                <h2 className="text-[11px] font-mono uppercase tracking-widest text-zinc-400 mb-4">
+                <h2 className="text-[11px] font-mono uppercase tracking-widest text-[#7D7D7D] mb-4">
                   Sleeping ({stopped.length})
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -458,7 +428,7 @@ export default function DashboardPage() {
             {/* Failed */}
             {failed.length > 0 && (
               <section>
-                <h2 className="text-[11px] font-mono uppercase tracking-widest text-zinc-400 mb-4">
+                <h2 className="text-[11px] font-mono uppercase tracking-widest text-[#7D7D7D] mb-4">
                   Failed ({failed.length})
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -473,10 +443,10 @@ export default function DashboardPage() {
       </main>
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-zinc-200 dark:border-zinc-800 mt-auto">
+      <footer className="border-t border-[#CFCFCF] dark:border-[#CFCFCF] mt-auto">
         <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 flex items-center justify-between">
-          <span className="font-mono text-xs font-bold text-zinc-400">barf. © 2025</span>
-          <Link href="/browse" className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
+          <span className="font-mono text-xs font-bold text-[#7D7D7D]">barf. © 2025</span>
+          <Link href="/browse" className="text-xs text-[#7D7D7D] hover:text-[#545454] dark:hover:text-[#CFCFCF] transition-colors">
             Browse apps →
           </Link>
         </div>

@@ -27,9 +27,9 @@ function makeDnsLabel(appSlug: string, deploymentId: string): string {
 }
 
 function makeSubdomain(appSlug: string, deploymentId: string): string {
-  const slug = appSlug.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 24);
+  const slug = appSlug.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 20);
   const uid  = deploymentId.replace(/-/g, '').slice(0, 6);
-  return `${slug}-${uid}`;
+  return `barf-${slug}-${uid}`;
 }
 
 function normaliseImage(image: string): string {
@@ -125,6 +125,37 @@ async function deleteCloudflareDns(recordId: string): Promise<void> {
   }
 }
 
+// ─── Health check ────────────────────────────────────────────────────────────
+
+async function waitForHttpReady(
+  hostname: string,
+  timeoutMs = 8 * 60 * 1000,  // 8 min — enough for postgres migrations
+  intervalMs = 12_000,
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  console.log(`[deploy] Waiting for ${hostname} to become ready…`);
+
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(`http://${hostname}`, {
+        signal: AbortSignal.timeout(6_000),
+        redirect: 'follow',
+      });
+      // Any real response (even 4xx) means the app is up — 502 means Caddy can't reach it yet
+      if (res.status !== 502 && res.status !== 503) {
+        console.log(`[deploy] ${hostname} ready (HTTP ${res.status})`);
+        return true;
+      }
+    } catch {
+      // connection refused / timeout — still starting
+    }
+    await new Promise(r => setTimeout(r, intervalMs));
+  }
+
+  console.error(`[deploy] ${hostname} did not become ready within timeout`);
+  return false;
+}
+
 // ─── Main deploy ──────────────────────────────────────────────────────────────
 
 export async function runDeployment(params: {
@@ -135,11 +166,13 @@ export async function runDeployment(params: {
   deployEnv?:      Record<string, string>;
   deployCommand?:  string[];
   requiresPostgres?: boolean;
+  resources?:      { cpu: number; memoryInGB: number };
 }): Promise<void> {
   const {
     deploymentId, appSlug, port,
     requiresPostgres = false,
     deployCommand,
+    resources = { cpu: 1, memoryInGB: 1.5 },
   } = params;
 
   const dockerImage   = normaliseImage(params.dockerImage);
@@ -191,12 +224,12 @@ export async function runDeployment(params: {
       }
 
       // ── App container ─────────────────────────────────────────────────────
-      const appContainer: Record<string, unknown> = {
+      const appContainer = {
         name:  appSlug.replace(/[^a-z0-9-]/g, '-').slice(0, 63),
         image: dockerImage,
         ports: [{ port }],
         resources: {
-          requests: { cpu: requiresPostgres ? 1 : 1, memoryInGB: requiresPostgres ? 1.5 : 1.5 },
+          requests: { cpu: resources.cpu, memoryInGB: resources.memoryInGB },
         },
         ...(Object.keys(resolvedEnv).length > 0 ? {
           environmentVariables: Object.entries(resolvedEnv).map(([name, value]) => ({ name, value })),
@@ -205,19 +238,19 @@ export async function runDeployment(params: {
       };
 
       // ── Caddy sidecar — HTTP reverse proxy, Cloudflare handles TLS ────────
-      const caddyContainer: Record<string, unknown> = {
+      const caddyContainer = {
         name:    'caddy',
         image:   'caddy:2-alpine',
         command: ['caddy', 'reverse-proxy', '--from', ':80', '--to', `localhost:${port}`],
         ports:   [{ port: 80 }],
-        resources: { requests: { cpu: 0.25, memoryInGB: 0.25 } },
+        resources: { requests: { cpu: 0.25, memoryInGB: 0.3 } },
       };
 
       // ── PostgreSQL sidecar (when required) ────────────────────────────────
-      const pgContainer: Record<string, unknown> | null = requiresPostgres ? {
+      const pgContainer = requiresPostgres ? {
         name:  'postgres',
         image: 'postgres:15-alpine',
-        ports: [],
+        ports: [] as { port: number }[],
         environmentVariables: [
           { name: 'POSTGRES_USER',     value: 'barf' },
           { name: 'POSTGRES_PASSWORD', value: pgPassword },
@@ -233,7 +266,11 @@ export async function runDeployment(params: {
         ...(pgContainer ? [pgContainer] : []),
       ];
 
-      const containerGroupDef: Record<string, unknown> = {
+      // Cast as any — the SDK type is strict but the shape is correct.
+      // Using spread for conditional fields (imageRegistryCredentials) conflicts
+      // with exactOptionalPropertyTypes if typed explicitly.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const containerGroupDef: any = {
         location:      region,
         osType:        'Linux',
         restartPolicy: 'Always',
@@ -251,6 +288,15 @@ export async function runDeployment(params: {
       await client.containerGroups.beginCreateOrUpdateAndWait(
         resourceGroup, dnsLabel, containerGroupDef,
       );
+
+      // ── Wait for app to actually serve traffic ────────────────────────────
+      await updateDeployment(deploymentId, { status: 'deploying' });
+      const ready = await waitForHttpReady(aciHostname);
+
+      if (!ready) {
+        await updateDeployment(deploymentId, { status: 'failed' });
+        return;
+      }
 
       // ── Create Cloudflare DNS record ──────────────────────────────────────
       const cfRecordId = await createCloudflareDns(subdomain, aciHostname);

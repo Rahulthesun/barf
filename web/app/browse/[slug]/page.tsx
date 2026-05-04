@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { GithubIcon } from "../../components/GithubIcon";
 import { AppIcon } from "../../components/AppIcon";
+import { Nav } from "../../components/Nav";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 const AUTO_STOP_HOURS = 4;
@@ -28,14 +29,14 @@ const CAT_COLOR: Record<string, { bg: string; text: string; border: string }> = 
   Security:       { bg: "bg-purple-50",  text: "text-purple-600",  border: "border-purple-200" },
   Monitoring:     { bg: "bg-red-50",     text: "text-red-600",     border: "border-red-200" },
 };
-const DEFAULT_CAT = { bg: "bg-zinc-50", text: "text-zinc-600", border: "border-zinc-200" };
+const DEFAULT_CAT = { bg: "bg-zinc-50", text: "text-[#545454]", border: "border-[#CFCFCF]" };
 
 interface OssApp {
   id: string; name: string; slug: string; tagline: string; description: string;
   category: string; replaces: string; github_url: string; website_url: string;
   docker_image: string; default_port: number; stars: number; license: string;
   language: string; logo_url: string | null; si_slug: string | null; has_docker: boolean;
-  self_hostable: boolean; featured: boolean; features: string[];
+  self_hostable: boolean; featured: boolean; features: string[]; deployable?: boolean;
 }
 
 interface Deployment {
@@ -78,6 +79,7 @@ function DeployPanel({ app }: { app: OssApp }) {
   const [elapsed, setElapsed] = useState(0);
   const [shutdownMs, setShutdownMs] = useState(0);
   const [checking, setChecking] = useState(true);
+  const [deployError, setDeployError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAt = useRef<number | null>(null);
@@ -142,11 +144,16 @@ function DeployPanel({ app }: { app: OssApp }) {
 
   async function handleDeploy() {
     setElapsed(0);
+    setDeployError(null);
     const r = await fetch(`${API}/api/deploy`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ app_slug: app.slug, app_id: app.id }),
     });
-    if (!r.ok) return;
+    if (!r.ok) {
+      const body = await r.json().catch(() => ({}));
+      setDeployError(body.error ?? "Deployment failed. Please try again.");
+      return;
+    }
     const data: Deployment = await r.json();
     localStorage.setItem(storageKey, data.id);
     setDep(data); startTick(); startPolling(data.id);
@@ -187,17 +194,17 @@ function DeployPanel({ app }: { app: OssApp }) {
   const c = CAT_COLOR[app.category] ?? DEFAULT_CAT;
 
   return (
-    <div className="rounded-2xl border border-zinc-100 bg-white shadow-sm overflow-hidden">
+    <div className="rounded-2xl border border-[#CFCFCF] bg-white shadow-sm overflow-hidden">
 
       {/* header */}
-      <div className={`px-6 pt-5 pb-4 border-b border-zinc-100 ${st === "idle" ? `${c.bg}` : ""}`}>
+      <div className={`px-6 pt-5 pb-4 border-b border-[#CFCFCF]`}>
         <div className="flex items-center gap-3 mb-1">
-          <div className={`w-8 h-8 rounded-lg ${c.bg} ${c.border} border flex items-center justify-center`}>
-            <AppIcon siSlug={app.si_slug} appSlug={app.slug} fallbackLetter={app.name.charAt(0)} size={16} className={c.text} />
+          <div className="w-8 h-8 rounded-lg bg-[#F8F8F8] border border-[#CFCFCF] flex items-center justify-center">
+            <AppIcon siSlug={app.si_slug} appSlug={app.slug} fallbackLetter={app.name.charAt(0)} size={16} className="text-[#545454]" />
           </div>
           <h2 className="font-bold text-base">Host {app.name}</h2>
         </div>
-        <p className="text-xs text-zinc-400 pl-11">
+        <p className="text-xs text-[#7D7D7D] pl-11">
           {st === "idle"    ? "Your own instance in ~2 minutes." : ""}
           {isDeploying      ? `Setting up… ${fmtElapsed(elapsed)}` : ""}
           {isStarting       ? `Waking up… ${fmtElapsed(elapsed)}` : ""}
@@ -213,7 +220,7 @@ function DeployPanel({ app }: { app: OssApp }) {
         {/* CHECKING */}
         {checking && (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-zinc-300" />
+            <Loader2 className="w-5 h-5 animate-spin text-[#CFCFCF]" />
           </div>
         )}
 
@@ -226,17 +233,34 @@ function DeployPanel({ app }: { app: OssApp }) {
                 { icon: Globe,  text: "Your own public URL" },
                 { icon: Zap,    text: "Auto-stops after 4 hours" },
               ].map(({ icon: Icon, text }) => (
-                <li key={text} className="flex items-center gap-2.5 text-sm text-zinc-600">
-                  <Icon className="w-4 h-4 text-emerald-500 shrink-0" />{text}
+                <li key={text} className="flex items-center gap-2.5 text-sm text-[#545454]">
+                  <Icon className="w-4 h-4 text-purple-600 shrink-0" />{text}
                 </li>
               ))}
             </ul>
-            <button onClick={handleDeploy}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 text-white font-semibold py-3 hover:bg-zinc-700 transition-colors text-[15px]">
-              Host This
-              <ArrowUpRight className="w-4 h-4" />
-            </button>
-            <p className="text-[11px] font-mono text-zinc-400 text-center">Free tier · No card required</p>
+
+            {app.deployable !== false ? (
+              <>
+                <button onClick={handleDeploy}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#252525] text-white font-semibold py-3 hover:bg-[#545454] transition-colors text-[15px]">
+                  Host This
+                  <ArrowUpRight className="w-4 h-4" />
+                </button>
+                {deployError && (
+                  <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                    {deployError}
+                  </div>
+                )}
+                <p className="text-[11px] font-mono text-[#7D7D7D] text-center">Free tier · No card required</p>
+              </>
+            ) : (
+              <>
+                <div className="rounded-xl bg-zinc-50 border border-[#CFCFCF] px-4 py-3 text-center">
+                  <p className="text-sm font-semibold text-[#7D7D7D]">Coming soon</p>
+                  <p className="text-xs text-[#7D7D7D] mt-0.5">One-click hosting for this app is being verified</p>
+                </div>
+              </>
+            )}
           </>
         )}
 
@@ -253,17 +277,17 @@ function DeployPanel({ app }: { app: OssApp }) {
                     {done
                       ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                       : active
-                        ? <Loader2 className="w-4 h-4 text-zinc-900 animate-spin shrink-0" />
-                        : <div className="w-4 h-4 rounded-full border-2 border-zinc-200 shrink-0" />
+                        ? <Loader2 className="w-4 h-4 text-[#252525] animate-spin shrink-0" />
+                        : <div className="w-4 h-4 rounded-full border-2 border-[#CFCFCF] shrink-0" />
                     }
-                    <span className={`text-sm ${done ? "text-zinc-300 line-through" : active ? "text-zinc-900 font-medium" : "text-zinc-400"}`}>
+                    <span className={`text-sm ${done ? "text-[#CFCFCF] line-through" : active ? "text-[#252525] font-medium" : "text-[#7D7D7D]"}`}>
                       {step.label}
                     </span>
                   </div>
                 );
               })}
             </div>
-            <div className="rounded-xl bg-zinc-50 border border-zinc-100 px-4 py-2.5 text-xs font-mono text-zinc-400 text-center">
+            <div className="rounded-xl bg-[#F8F8F8] border border-[#CFCFCF] px-4 py-2.5 text-xs font-mono text-[#7D7D7D] text-center">
               Usually 2–3 minutes total
             </div>
           </>
@@ -272,10 +296,10 @@ function DeployPanel({ app }: { app: OssApp }) {
         {/* STARTING */}
         {isStarting && (
           <div className="flex flex-col items-center gap-3 py-4">
-            <Loader2 className="w-7 h-7 text-zinc-900 animate-spin" />
+            <Loader2 className="w-7 h-7 text-[#252525] animate-spin" />
             <div className="text-center">
               <p className="font-semibold text-sm">Waking up…</p>
-              <p className="text-xs text-zinc-400 mt-0.5">Usually under 30 seconds · {fmtElapsed(elapsed)}</p>
+              <p className="text-xs text-[#7D7D7D] mt-0.5">Usually under 30 seconds · {fmtElapsed(elapsed)}</p>
             </div>
           </div>
         )}
@@ -283,8 +307,8 @@ function DeployPanel({ app }: { app: OssApp }) {
         {/* STOPPING */}
         {isStopping && (
           <div className="flex items-center gap-3 py-4 justify-center">
-            <Loader2 className="w-5 h-5 text-zinc-400 animate-spin" />
-            <span className="text-sm text-zinc-500">Stopping container…</span>
+            <Loader2 className="w-5 h-5 text-[#7D7D7D] animate-spin" />
+            <span className="text-sm text-[#7D7D7D]">Stopping container…</span>
           </div>
         )}
 
@@ -297,7 +321,7 @@ function DeployPanel({ app }: { app: OssApp }) {
                 <span className="text-sm font-bold text-emerald-600">Live</span>
               </div>
               {shutdownMs > 0 && (
-                <span className="text-xs font-mono text-zinc-400">Stops in {fmtCountdown(shutdownMs)}</span>
+                <span className="text-xs font-mono text-[#7D7D7D]">Stops in {fmtCountdown(shutdownMs)}</span>
               )}
             </div>
 
@@ -308,17 +332,17 @@ function DeployPanel({ app }: { app: OssApp }) {
               <ExternalLink className="w-3.5 h-3.5 opacity-80" />
             </a>
 
-            <div className="rounded-xl bg-zinc-50 border border-zinc-100 px-3 py-2">
-              <span className="text-[11px] font-mono text-zinc-400 truncate block">{dep.live_url}</span>
+            <div className="rounded-xl bg-[#F8F8F8] border border-[#CFCFCF] px-3 py-2">
+              <span className="text-[11px] font-mono text-[#7D7D7D] truncate block">{dep.live_url}</span>
             </div>
 
             <div className="flex items-center gap-2">
               <button onClick={handleKeepAlive}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#CFCFCF] py-2 text-xs font-medium text-[#545454] hover:bg-[#F8F8F8] transition-colors">
                 <Zap className="w-3.5 h-3.5 text-yellow-500" /> Keep alive
               </button>
               <button onClick={handleStop}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#CFCFCF] py-2 text-xs font-medium text-[#545454] hover:bg-[#F8F8F8] transition-colors">
                 <Square className="w-3.5 h-3.5" /> Stop
               </button>
             </div>
@@ -331,12 +355,12 @@ function DeployPanel({ app }: { app: OssApp }) {
             <div className="flex flex-col items-center gap-1 py-2 text-center">
               <div className="flex items-center gap-2 mb-1">
                 <span className="w-2 h-2 rounded-full bg-zinc-300" />
-                <span className="text-sm font-semibold text-zinc-500">Sleeping</span>
+                <span className="text-sm font-semibold text-[#7D7D7D]">Sleeping</span>
               </div>
-              <p className="text-xs text-zinc-400">Container is paused. Wake it up in under 30 seconds.</p>
+              <p className="text-xs text-[#7D7D7D]">Container is paused. Wake it up in under 30 seconds.</p>
             </div>
             <button onClick={handleStart}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 text-white font-semibold py-3 hover:bg-zinc-700 transition-colors text-[15px]">
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#252525] text-white font-semibold py-3 hover:bg-[#545454] transition-colors text-[15px]">
               <Play className="w-4 h-4" /> Wake Up
             </button>
             <button onClick={handleTearDown}
@@ -354,7 +378,7 @@ function DeployPanel({ app }: { app: OssApp }) {
               <p className="text-xs text-red-400 mt-1">Check your Azure resource group for details.</p>
             </div>
             <button onClick={() => { setDep(null); stopPolling(); }}
-              className="inline-flex items-center justify-center rounded-xl border border-zinc-200 py-2.5 text-sm font-medium hover:bg-zinc-50 transition-colors">
+              className="inline-flex items-center justify-center rounded-xl border border-[#CFCFCF] py-2.5 text-sm font-medium text-[#545454] hover:bg-[#F8F8F8] transition-colors">
               Try again
             </button>
           </>
@@ -378,10 +402,10 @@ export default function AppDetailPage({ params }: { params: Promise<{ slug: stri
   }, [slug]);
 
   if (notFound) return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-white text-zinc-900">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-white text-[#252525]">
       <span className="text-5xl">🤷</span>
       <h1 className="text-2xl font-bold">App not found</h1>
-      <Link href="/browse" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 transition-colors underline underline-offset-4">
+      <Link href="/browse" className="inline-flex items-center gap-1.5 text-sm text-[#7D7D7D] hover:text-[#252525] transition-colors underline underline-offset-4">
         <ArrowLeft className="w-4 h-4" /> Back to browse
       </Link>
     </div>
@@ -389,7 +413,7 @@ export default function AppDetailPage({ params }: { params: Promise<{ slug: stri
 
   if (!app) return (
     <div className="min-h-screen flex items-center justify-center bg-white">
-      <Loader2 className="w-6 h-6 animate-spin text-zinc-300" />
+      <Loader2 className="w-6 h-6 animate-spin text-[#CFCFCF]" />
     </div>
   );
 
@@ -398,42 +422,26 @@ export default function AppDetailPage({ params }: { params: Promise<{ slug: stri
   const c = CAT_COLOR[app.category] ?? DEFAULT_CAT;
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-zinc-900">
+    <div className="min-h-screen flex flex-col bg-white text-[#252525]">
 
-      {/* Nav */}
-      <header className="sticky top-0 z-50 border-b border-zinc-100 bg-white/95 backdrop-blur">
-        <div className="max-w-6xl mx-auto px-4 sm:px-8 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <Image src="/assets/logo.jpg" alt="barf" width={22} height={22} className="rounded-sm object-contain" />
-            <span className="font-mono text-sm font-bold tracking-tight">barf.</span>
-          </Link>
-          <div className="flex items-center gap-1.5 text-sm font-mono text-zinc-400">
-            <Link href="/browse" className="hover:text-zinc-900 transition-colors">browse</Link>
-            <span>/</span>
-            <span className="text-zinc-900 font-semibold">{app.slug}</span>
-          </div>
-          <Link href="/browse" className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 text-zinc-600 text-sm font-medium px-3.5 py-2 hover:bg-zinc-50 transition-colors">
-            <ArrowLeft className="w-3.5 h-3.5" /> Browse
-          </Link>
-        </div>
-      </header>
+      <Nav />
 
       <main className="flex-1">
         {/* app hero band */}
-        <div className={`border-b border-zinc-100 ${c.bg}`}>
+        <div className="border-b border-[#CFCFCF] bg-[#F8F8F8]">
           <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8">
             <div className="flex items-start gap-5">
-              <div className={`w-16 h-16 rounded-2xl ${c.bg} ${c.border} border-2 flex items-center justify-center shrink-0`}>
+              <div className="w-16 h-16 rounded-2xl bg-white border-2 border-[#CFCFCF] flex items-center justify-center shrink-0">
                 {app.logo_url
                   ? <img src={app.logo_url} alt={app.name} className="w-10 h-10 object-contain rounded-lg" />
-                  : <AppIcon siSlug={app.si_slug} appSlug={app.slug} fallbackLetter={app.name.charAt(0)} size={32} className={c.text} />
+                  : <AppIcon siSlug={app.si_slug} appSlug={app.slug} fallbackLetter={app.name.charAt(0)} size={32} className="text-[#545454]" />
                 }
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <h1 className="text-3xl font-bold tracking-tight">{app.name}</h1>
                   {app.featured && (
-                    <span className="inline-flex items-center rounded-full bg-zinc-900 text-white text-[11px] font-bold px-2.5 py-0.5 uppercase tracking-wide">
+                    <span className="inline-flex items-center rounded-full bg-[#252525] text-white text-[11px] font-bold px-2.5 py-0.5 uppercase tracking-wide">
                       Featured
                     </span>
                   )}
@@ -443,22 +451,22 @@ export default function AppDetailPage({ params }: { params: Promise<{ slug: stri
                     </span>
                   )}
                 </div>
-                <p className="text-zinc-500 text-[15px] leading-relaxed">{app.tagline}</p>
+                <p className="text-[#7D7D7D] text-[15px] leading-relaxed">{app.tagline}</p>
 
                 <div className="flex flex-wrap items-center gap-3 mt-3">
                   {app.stars > 0 && (
-                    <span className="flex items-center gap-1 text-xs font-mono text-zinc-500">
+                    <span className="flex items-center gap-1 text-xs font-mono text-[#7D7D7D]">
                       <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
                       {fmtStars} stars
                     </span>
                   )}
                   {app.license && (
-                    <span className="flex items-center gap-1 text-xs font-mono text-zinc-400">
+                    <span className="flex items-center gap-1 text-xs font-mono text-[#7D7D7D]">
                       <Shield className="w-3 h-3" /> {app.license}
                     </span>
                   )}
                   {app.language && (
-                    <span className="text-xs font-mono text-zinc-400">{app.language}</span>
+                    <span className="text-xs font-mono text-[#7D7D7D]">{app.language}</span>
                   )}
                   {app.category && (
                     <span className={`inline-flex items-center gap-1 text-xs font-medium ${c.text}`}>
@@ -478,18 +486,18 @@ export default function AppDetailPage({ params }: { params: Promise<{ slug: stri
             <div className="flex-1 flex flex-col gap-6">
 
               {app.description && (
-                <div className="rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm">
-                  <h2 className="text-[11px] font-bold mb-3 uppercase tracking-widest text-zinc-400">About</h2>
-                  <p className="text-[15px] text-zinc-600 leading-relaxed">{app.description}</p>
+                <div className="rounded-2xl border border-[#CFCFCF] bg-white p-6 shadow-sm">
+                  <h2 className="text-[11px] font-bold mb-3 uppercase tracking-widest text-[#7D7D7D]">About</h2>
+                  <p className="text-[15px] text-[#545454] leading-relaxed">{app.description}</p>
                 </div>
               )}
 
               {features.length > 0 && (
-                <div className="rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm">
-                  <h2 className="text-[11px] font-bold mb-4 uppercase tracking-widest text-zinc-400">Features</h2>
+                <div className="rounded-2xl border border-[#CFCFCF] bg-white p-6 shadow-sm">
+                  <h2 className="text-[11px] font-bold mb-4 uppercase tracking-widest text-[#7D7D7D]">Features</h2>
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {features.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-sm text-zinc-600">
+                      <li key={i} className="flex items-start gap-2.5 text-sm text-[#545454]">
                         <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />{f}
                       </li>
                     ))}
@@ -500,14 +508,14 @@ export default function AppDetailPage({ params }: { params: Promise<{ slug: stri
               <div className="flex flex-wrap gap-2.5">
                 {app.github_url && (
                   <a href={app.github_url} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors">
-                    <GithubIcon className="w-4 h-4" /> View on GitHub <ExternalLink className="w-3 h-3 text-zinc-300" />
+                    className="inline-flex items-center gap-2 rounded-xl border border-[#CFCFCF] bg-white px-4 py-2.5 text-sm font-medium text-[#545454] hover:bg-[#F8F8F8] transition-colors">
+                    <GithubIcon className="w-4 h-4" /> View on GitHub <ExternalLink className="w-3 h-3 text-[#CFCFCF]" />
                   </a>
                 )}
                 {app.website_url && (
                   <a href={app.website_url} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors">
-                    <Globe className="w-4 h-4" /> Website <ExternalLink className="w-3 h-3 text-zinc-300" />
+                    className="inline-flex items-center gap-2 rounded-xl border border-[#CFCFCF] bg-white px-4 py-2.5 text-sm font-medium text-[#545454] hover:bg-[#F8F8F8] transition-colors">
+                    <Globe className="w-4 h-4" /> Website <ExternalLink className="w-3 h-3 text-[#CFCFCF]" />
                   </a>
                 )}
               </div>
@@ -523,10 +531,10 @@ export default function AppDetailPage({ params }: { params: Promise<{ slug: stri
         </div>
       </main>
 
-      <footer className="border-t border-zinc-100 mt-auto">
+      <footer className="border-t border-[#CFCFCF] mt-auto">
         <div className="max-w-6xl mx-auto px-4 sm:px-8 py-5 flex items-center justify-between">
-          <span className="font-mono text-xs font-bold text-zinc-300">barf. © 2025</span>
-          <Link href="/browse" className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors flex items-center gap-1">
+          <span className="font-mono text-xs font-bold text-[#CFCFCF]">barf. © 2025</span>
+          <Link href="/browse" className="text-xs text-[#7D7D7D] hover:text-[#545454] transition-colors flex items-center gap-1">
             <ArrowLeft className="w-3 h-3" /> Browse
           </Link>
         </div>

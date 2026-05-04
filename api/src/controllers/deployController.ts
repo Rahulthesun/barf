@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { runDeployment, stopContainer, startContainer, tearDownDeployment, missingAzureConfig } from '../services/azureContainerService';
+import { getDeployConfig } from '../services/deployConfigs';
 
 function getSupabase() {
   return createClient(
@@ -56,9 +57,25 @@ export async function createDeployment(req: Request, res: Response): Promise<voi
 
   if (appErr || !app) { res.status(404).json({ error: 'App not found' }); return; }
 
-  const dockerImage = (app as any).docker_image as string | null;
+  const slug = (app as any).slug as string;
+
+  // Curated config takes precedence over DB values
+  const curated = getDeployConfig(slug);
+
+  if (curated && !curated.deployable) {
+    res.status(400).json({ error: curated.deployable_note ?? `${slug} cannot be deployed with the current setup.` });
+    return;
+  }
+
+  const dockerImage  = curated?.docker_image  ?? (app as any).docker_image  as string | null;
+  const port         = curated?.default_port  ?? (app as any).default_port  as number ?? 3000;
+  const requiresPg   = curated?.requires_postgres ?? (app as any).requires_postgres as boolean ?? false;
+  const deployEnv    = curated?.deploy_env    ?? (app as any).deploy_env    as Record<string, string> ?? {};
+  const deployCmd    = curated?.deploy_command ?? (app as any).deploy_command as string[] ?? undefined;
+  const resources    = curated?.resources;
+
   if (!dockerImage) {
-    res.status(400).json({ error: `No Docker image configured for ${app_slug} yet.` });
+    res.status(400).json({ error: `No Docker image configured for ${slug} yet.` });
     return;
   }
 
@@ -67,7 +84,7 @@ export async function createDeployment(req: Request, res: Response): Promise<voi
     .from('deployments')
     .insert({
       app_id:     (app as any).id,
-      app_slug:   (app as any).slug,
+      app_slug:   slug,
       status:     'queued',
       updated_at: new Date().toISOString(),
     })
@@ -85,12 +102,13 @@ export async function createDeployment(req: Request, res: Response): Promise<voi
   setImmediate(() => {
     runDeployment({
       deploymentId,
-      appSlug:          (app as any).slug as string,
+      appSlug:          slug,
       dockerImage,
-      port:             (app as any).default_port as number ?? 3000,
-      deployEnv:        (app as any).deploy_env as Record<string, string> ?? {},
-      deployCommand:    (app as any).deploy_command as string[] ?? undefined,
-      requiresPostgres: (app as any).requires_postgres as boolean ?? false,
+      port,
+      deployEnv,
+      deployCommand:    deployCmd,
+      requiresPostgres: requiresPg,
+      ...(resources ? { resources } : {}),
     }).catch(err => console.error('[deploy] Unhandled error:', err));
   });
 
