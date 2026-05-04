@@ -14,24 +14,36 @@ import {
   ExternalLink,
   Server,
   Trash2,
+  Square,
+  Play,
+  Zap,
+  Moon,
 } from "lucide-react";
 import { GithubIcon } from "../components/GithubIcon";
+import { AppIcon } from "../components/AppIcon";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const AUTO_STOP_HOURS = 4;
+
+type DeployStatus =
+  | "queued" | "deploying" | "live" | "failed"
+  | "stopping" | "stopped" | "starting" | "deleting";
 
 interface Deployment {
   id: string;
   app_slug: string;
   app_id: string | null;
-  status: "queued" | "deploying" | "live" | "failed";
+  status: DeployStatus;
   live_url: string | null;
   azure_app_name: string | null;
+  live_since: string | null;
+  last_accessed_at: string | null;
   created_at: string;
   updated_at: string;
 }
 
-function statusBadge(status: Deployment["status"]) {
-  const map: Record<Deployment["status"], { label: string; cls: string; icon: React.ReactNode }> = {
+function statusBadge(status: DeployStatus) {
+  const map: Record<DeployStatus, { label: string; cls: string; icon: React.ReactNode }> = {
     queued: {
       label: "Queued",
       cls: "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700",
@@ -47,16 +59,36 @@ function statusBadge(status: Deployment["status"]) {
       cls: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30",
       icon: <CheckCircle2 className="w-3 h-3" />,
     },
+    stopping: {
+      label: "Stopping",
+      cls: "bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-200 dark:border-yellow-500/30",
+      icon: <Loader2 className="w-3 h-3 animate-spin" />,
+    },
+    stopped: {
+      label: "Sleeping",
+      cls: "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700",
+      icon: <Moon className="w-3 h-3" />,
+    },
+    starting: {
+      label: "Waking up",
+      cls: "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/30",
+      icon: <Loader2 className="w-3 h-3 animate-spin" />,
+    },
+    deleting: {
+      label: "Deleting",
+      cls: "bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 border-red-200 dark:border-red-500/30",
+      icon: <Loader2 className="w-3 h-3 animate-spin" />,
+    },
     failed: {
       label: "Failed",
       cls: "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/30",
       icon: <XCircle className="w-3 h-3" />,
     },
   };
-  const { label, cls, icon } = map[status] ?? map.queued;
+  const cfg = map[status] ?? map.failed;
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${cls}`}>
-      {icon}{label}
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${cfg.cls}`}>
+      {cfg.icon}{cfg.label}
     </span>
   );
 }
@@ -69,14 +101,43 @@ function timeSince(iso: string) {
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
-function DeploymentCard({ dep, onRefresh, onDelete }: { dep: Deployment; onRefresh: () => void; onDelete: (id: string) => void }) {
+function fmtCountdown(ms: number) {
+  if (ms <= 0) return "0m";
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+function DeploymentCard({
+  dep,
+  onRefresh,
+  onDelete,
+  onStop,
+  onStart,
+  onKeepAlive,
+}: {
+  dep: Deployment;
+  onRefresh: () => void;
+  onDelete: (id: string) => void;
+  onStop: (id: string) => void;
+  onStart: (id: string) => void;
+  onKeepAlive: (id: string) => void;
+}) {
+  const isTransient = dep.status === "deploying" || dep.status === "queued"
+    || dep.status === "stopping" || dep.status === "starting" || dep.status === "deleting";
+
+  const base = new Date(dep.last_accessed_at ?? dep.live_since ?? dep.created_at).getTime();
+  const shutdownMs = dep.status === "live"
+    ? Math.max(0, base + AUTO_STOP_HOURS * 3_600_000 - Date.now())
+    : 0;
+
   return (
     <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4">
       {/* header row */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-sm font-bold text-zinc-500 font-mono shrink-0">
-            {dep.app_slug.charAt(0).toUpperCase()}
+          <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+            <AppIcon appSlug={dep.app_slug} fallbackLetter={dep.app_slug.charAt(0).toUpperCase()} size={18} className="text-zinc-600 dark:text-zinc-300" />
           </div>
           <div className="min-w-0">
             <p className="font-semibold text-[15px] truncate">{dep.app_slug}</p>
@@ -87,7 +148,7 @@ function DeploymentCard({ dep, onRefresh, onDelete }: { dep: Deployment; onRefre
       </div>
 
       {/* live url */}
-      {dep.live_url && (
+      {dep.live_url && dep.status === "live" && (
         <a
           href={dep.live_url}
           target="_blank"
@@ -100,25 +161,26 @@ function DeploymentCard({ dep, onRefresh, onDelete }: { dep: Deployment; onRefre
         </a>
       )}
 
-      {dep.azure_app_name && !dep.live_url && (
+      {dep.azure_app_name && !dep.live_url && dep.status !== "stopped" && (
         <p className="text-xs font-mono text-zinc-400 truncate">
           <span className="text-zinc-300 dark:text-zinc-600">container:</span> {dep.azure_app_name}
+        </p>
+      )}
+
+      {/* auto-shutdown countdown */}
+      {dep.status === "live" && shutdownMs > 0 && (
+        <p className="text-xs font-mono text-zinc-400">
+          Stops in <span className="text-zinc-600 dark:text-zinc-300">{fmtCountdown(shutdownMs)}</span>
         </p>
       )}
 
       {/* footer row */}
       <div className="flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-800">
         <span className="text-xs text-zinc-400 font-mono">{timeSince(dep.created_at)}</span>
-        <div className="flex items-center gap-2">
-          {(dep.status === "failed" || dep.status === "queued") && (
-            <Link
-              href={`/browse/${dep.app_slug}`}
-              className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-3 font-medium"
-            >
-              Retry <ArrowRight className="w-3 h-3" />
-            </Link>
-          )}
-          {dep.status === "deploying" && (
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+
+          {/* deploying/transient — just refresh */}
+          {isTransient && (
             <button
               onClick={onRefresh}
               className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
@@ -126,25 +188,74 @@ function DeploymentCard({ dep, onRefresh, onDelete }: { dep: Deployment; onRefre
               <RefreshCw className="w-3 h-3" /> Refresh
             </button>
           )}
+
+          {/* live controls */}
           {dep.status === "live" && (
-            <Link
-              href={`/browse/${dep.app_slug}`}
-              className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
-            >
-              View app <ArrowRight className="w-3 h-3" />
-            </Link>
+            <>
+              <button
+                onClick={() => onKeepAlive(dep.id)}
+                className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                title="Reset auto-shutdown timer"
+              >
+                <Zap className="w-3 h-3 text-yellow-500" /> Keep alive
+              </button>
+              <button
+                onClick={() => onStop(dep.id)}
+                className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+              >
+                <Square className="w-3 h-3" /> Stop
+              </button>
+              <Link
+                href={`/browse/${dep.app_slug}`}
+                className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+              >
+                Open <ArrowRight className="w-3 h-3" />
+              </Link>
+            </>
           )}
-          {(dep.status === "live" || dep.status === "failed") && (
-            <button
-              onClick={() => {
-                if (confirm(`Tear down ${dep.app_slug}? This will delete the container.`)) {
-                  onDelete(dep.id);
-                }
-              }}
-              className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition-colors ml-2"
-            >
-              <Trash2 className="w-3 h-3" /> Tear down
-            </button>
+
+          {/* stopped controls */}
+          {dep.status === "stopped" && (
+            <>
+              <button
+                onClick={() => onStart(dep.id)}
+                className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-3 font-medium"
+              >
+                <Play className="w-3 h-3" /> Wake up
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm(`Tear down ${dep.app_slug}? This will delete the container.`)) {
+                    onDelete(dep.id);
+                  }
+                }}
+                className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition-colors ml-1"
+              >
+                <Trash2 className="w-3 h-3" /> Delete
+              </button>
+            </>
+          )}
+
+          {/* failed */}
+          {(dep.status === "failed") && (
+            <>
+              <Link
+                href={`/browse/${dep.app_slug}`}
+                className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-3 font-medium"
+              >
+                Retry <ArrowRight className="w-3 h-3" />
+              </Link>
+              <button
+                onClick={() => {
+                  if (confirm(`Tear down ${dep.app_slug}? This will delete the container.`)) {
+                    onDelete(dep.id);
+                  }
+                }}
+                className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition-colors ml-1"
+              >
+                <Trash2 className="w-3 h-3" /> Delete
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -181,7 +292,6 @@ export default function DashboardPage() {
 
   const fetchDeployments = useCallback(async () => {
     try {
-      // In a real auth'd app we'd filter by user_id. For now fetches all.
       const r = await fetch(`${API}/api/deploy`);
       if (!r.ok) throw new Error("Failed");
       const data = await r.json();
@@ -202,18 +312,46 @@ export default function DashboardPage() {
     fetchDeployments();
   }, [fetchDeployments]);
 
-  // auto-refresh deploying rows
+  const stopDeployment = useCallback(async (id: string) => {
+    await fetch(`${API}/api/deploy/${id}/stop`, { method: "POST" });
+    setDeployments(prev => prev.map(d => d.id === id ? { ...d, status: "stopping" as DeployStatus } : d));
+    setTimeout(fetchDeployments, 3000);
+  }, [fetchDeployments]);
+
+  const startDeployment = useCallback(async (id: string) => {
+    await fetch(`${API}/api/deploy/${id}/start`, { method: "POST" });
+    setDeployments(prev => prev.map(d => d.id === id ? { ...d, status: "starting" as DeployStatus } : d));
+    setTimeout(fetchDeployments, 3000);
+  }, [fetchDeployments]);
+
+  const keepAlive = useCallback(async (id: string) => {
+    await fetch(`${API}/api/deploy/${id}/keepalive`, { method: "POST" });
+    const now = new Date().toISOString();
+    setDeployments(prev => prev.map(d => d.id === id ? { ...d, last_accessed_at: now } : d));
+  }, []);
+
+  // auto-refresh while any deployment is in a transient state
   useEffect(() => {
-    const hasActive = deployments.some((d) => d.status === "deploying" || d.status === "queued");
-    if (!hasActive) return;
-    const t = setInterval(fetchDeployments, 6000);
+    const hasTransient = deployments.some(d =>
+      d.status === "deploying" || d.status === "queued" ||
+      d.status === "stopping" || d.status === "starting" || d.status === "deleting"
+    );
+    if (!hasTransient) return;
+    const t = setInterval(fetchDeployments, 5000);
     return () => clearInterval(t);
   }, [deployments, fetchDeployments]);
 
-  const byStatus = {
-    live: deployments.filter((d) => d.status === "live"),
-    deploying: deployments.filter((d) => d.status === "deploying" || d.status === "queued"),
-    failed: deployments.filter((d) => d.status === "failed"),
+  const live    = deployments.filter(d => d.status === "live");
+  const active  = deployments.filter(d => d.status === "deploying" || d.status === "queued" || d.status === "starting" || d.status === "stopping" || d.status === "deleting");
+  const stopped = deployments.filter(d => d.status === "stopped");
+  const failed  = deployments.filter(d => d.status === "failed");
+
+  const cardProps = {
+    onRefresh: fetchDeployments,
+    onDelete: deleteDeployment,
+    onStop: stopDeployment,
+    onStart: startDeployment,
+    onKeepAlive: keepAlive,
   };
 
   return (
@@ -229,7 +367,7 @@ export default function DashboardPage() {
 
           <nav className="hidden sm:flex items-center gap-6">
             {[["Browse", "/browse"], ["Pricing", "/#pricing"], ["Docs", "#"]].map(([label, href]) => (
-              <Link key={label} href={href}
+              <Link key={label} href={href!}
                 className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">
                 {label}
               </Link>
@@ -258,7 +396,7 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">My Deployments</h1>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1.5">
-              {loading ? "Loading…" : `${deployments.length} total · ${byStatus.live.length} live`}
+              {loading ? "Loading…" : `${deployments.length} total · ${live.length} live · ${stopped.length} sleeping`}
             </p>
           </div>
           <button
@@ -281,44 +419,50 @@ export default function DashboardPage() {
         ) : (
           <div className="flex flex-col gap-8">
 
-            {/* Active */}
-            {byStatus.deploying.length > 0 && (
+            {/* In progress */}
+            {active.length > 0 && (
               <section>
                 <h2 className="text-[11px] font-mono uppercase tracking-widest text-zinc-400 mb-4">
-                  Deploying ({byStatus.deploying.length})
+                  In progress ({active.length})
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {byStatus.deploying.map((d) => (
-                    <DeploymentCard key={d.id} dep={d} onRefresh={fetchDeployments} onDelete={deleteDeployment} />
-                  ))}
+                  {active.map(d => <DeploymentCard key={d.id} dep={d} {...cardProps} />)}
                 </div>
               </section>
             )}
 
             {/* Live */}
-            {byStatus.live.length > 0 && (
+            {live.length > 0 && (
               <section>
                 <h2 className="text-[11px] font-mono uppercase tracking-widest text-zinc-400 mb-4">
-                  Live ({byStatus.live.length})
+                  Live ({live.length})
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {byStatus.live.map((d) => (
-                    <DeploymentCard key={d.id} dep={d} onRefresh={fetchDeployments} onDelete={deleteDeployment} />
-                  ))}
+                  {live.map(d => <DeploymentCard key={d.id} dep={d} {...cardProps} />)}
+                </div>
+              </section>
+            )}
+
+            {/* Sleeping */}
+            {stopped.length > 0 && (
+              <section>
+                <h2 className="text-[11px] font-mono uppercase tracking-widest text-zinc-400 mb-4">
+                  Sleeping ({stopped.length})
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {stopped.map(d => <DeploymentCard key={d.id} dep={d} {...cardProps} />)}
                 </div>
               </section>
             )}
 
             {/* Failed */}
-            {byStatus.failed.length > 0 && (
+            {failed.length > 0 && (
               <section>
                 <h2 className="text-[11px] font-mono uppercase tracking-widest text-zinc-400 mb-4">
-                  Failed ({byStatus.failed.length})
+                  Failed ({failed.length})
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {byStatus.failed.map((d) => (
-                    <DeploymentCard key={d.id} dep={d} onRefresh={fetchDeployments} onDelete={deleteDeployment} />
-                  ))}
+                  {failed.map(d => <DeploymentCard key={d.id} dep={d} {...cardProps} />)}
                 </div>
               </section>
             )}

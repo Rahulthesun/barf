@@ -28,7 +28,7 @@ function makeDnsLabel(appSlug: string, deploymentId: string): string {
 
 async function updateDeployment(
   deploymentId: string,
-  fields: { status: string; live_url?: string; azure_app_name?: string; error?: string },
+  fields: Record<string, string | undefined>,
 ) {
   await getSupabase()
     .from('deployments')
@@ -104,7 +104,11 @@ export async function runDeployment(params: {
 
       const liveUrl = `http://${dnsLabel}.${region}.azurecontainer.io:${port}`;
       console.log(`[deploy] Live: ${liveUrl}`);
-      await updateDeployment(deploymentId, { status: 'live', live_url: liveUrl });
+      const now = new Date().toISOString();
+      await getSupabase().from('deployments').update({
+        status: 'live', live_url: liveUrl, live_since: now,
+        last_accessed_at: now, updated_at: now,
+      }).eq('id', deploymentId);
       return; // success
 
     } catch (err: unknown) {
@@ -125,7 +129,57 @@ export async function runDeployment(params: {
   }
 }
 
-// ─── Delete a container group (for future "tear down" feature) ────────────────
+// ─── Stop a running container (pause — keeps group, restarts fast) ───────────
+
+export async function stopContainer(azureAppName: string): Promise<void> {
+  const client = getAciClient();
+  await client.containerGroups.stop(process.env.AZURE_RESOURCE_GROUP!, azureAppName);
+  console.log(`[deploy] Stopped container: ${azureAppName}`);
+}
+
+// ─── Start a stopped container (~30s, much faster than initial deploy) ────────
+
+export async function startContainer(azureAppName: string): Promise<void> {
+  const client = getAciClient();
+  await client.containerGroups.beginStartAndWait(process.env.AZURE_RESOURCE_GROUP!, azureAppName);
+  console.log(`[deploy] Started container: ${azureAppName}`);
+}
+
+// ─── Auto-shutdown: stop containers idle for > AUTO_STOP_HOURS ───────────────
+
+const AUTO_STOP_HOURS = 4;
+
+export async function runAutoShutdown(): Promise<void> {
+  const supabase   = getSupabase();
+  const cutoff     = new Date(Date.now() - AUTO_STOP_HOURS * 60 * 60 * 1000).toISOString();
+
+  const { data } = await supabase
+    .from('deployments')
+    .select('id, azure_app_name')
+    .eq('status', 'live')
+    .or(`last_accessed_at.lt.${cutoff},last_accessed_at.is.null`)
+    .lt('live_since', cutoff);
+
+  if (!data || data.length === 0) return;
+
+  console.log(`[auto-shutdown] Stopping ${data.length} idle container(s)`);
+
+  for (const dep of data) {
+    const name = (dep as any).azure_app_name as string | null;
+    if (!name) continue;
+    try {
+      await stopContainer(name);
+      await supabase
+        .from('deployments')
+        .update({ status: 'stopped', updated_at: new Date().toISOString() })
+        .eq('id', (dep as any).id);
+    } catch (err) {
+      console.error(`[auto-shutdown] Failed to stop ${name}:`, err);
+    }
+  }
+}
+
+// ─── Delete a container group entirely ───────────────────────────────────────
 
 export async function tearDownDeployment(azureAppName: string): Promise<void> {
   const client = getAciClient();

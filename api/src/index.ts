@@ -6,6 +6,7 @@ import buildRoutes    from './routes/buildRoutes';
 import downloadRoutes from './routes/downloadRoutes';
 import appsRoutes     from './routes/appsRoutes';
 import deployRoutes   from './routes/deployRoutes';
+import { runAutoShutdown } from './services/azureContainerService';
 
 dotenv.config();
 
@@ -27,4 +28,7 @@ app.get('/health', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Check for idle containers every 5 minutes and stop them after 4 hours
+  setInterval(() => { runAutoShutdown().catch(console.error); }, 5 * 60 * 1000);
 });

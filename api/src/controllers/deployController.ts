@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { runDeployment, tearDownDeployment, missingAzureConfig } from '../services/azureContainerService';
+import { runDeployment, stopContainer, startContainer, tearDownDeployment, missingAzureConfig } from '../services/azureContainerService';
 
 function getSupabase() {
   return createClient(
@@ -12,9 +12,19 @@ function getSupabase() {
 // ─── GET /api/deploy — list all deployments ──────────────────────────────────
 
 export async function listDeployments(req: Request, res: Response): Promise<void> {
-  const { data, error } = await getSupabase()
+  const supabase = getSupabase();
+
+  // Mark queued deployments older than 15 min as failed (server never picked them up)
+  const stale = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  await supabase
     .from('deployments')
-    .select('id, app_id, app_slug, status, live_url, azure_app_name, created_at, updated_at')
+    .update({ status: 'failed', updated_at: new Date().toISOString() })
+    .eq('status', 'queued')
+    .lt('created_at', stale);
+
+  const { data, error } = await supabase
+    .from('deployments')
+    .select('id, app_id, app_slug, status, live_url, azure_app_name, live_since, last_accessed_at, created_at, updated_at')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -96,12 +106,97 @@ export async function getDeploymentStatus(req: Request, res: Response): Promise<
 
   const { data, error } = await getSupabase()
     .from('deployments')
-    .select('id, app_slug, status, live_url, azure_app_name, created_at, updated_at')
+    .select('id, app_slug, status, live_url, azure_app_name, live_since, last_accessed_at, created_at, updated_at')
     .eq('id', id)
     .maybeSingle();
 
   if (error || !data) { res.status(404).json({ error: 'Deployment not found' }); return; }
   res.json(data);
+}
+
+// ─── POST /api/deploy/:id/stop — pause the container ────────────────────────
+
+export async function stopDeployment(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const supabase = getSupabase();
+
+  const { data } = await supabase
+    .from('deployments')
+    .select('azure_app_name, status')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (!data || (data as any).status !== 'live') {
+    res.status(400).json({ error: 'Deployment is not live' }); return;
+  }
+
+  const name = (data as any).azure_app_name as string;
+  setImmediate(async () => {
+    try {
+      await stopContainer(name);
+      await supabase.from('deployments')
+        .update({ status: 'stopped', updated_at: new Date().toISOString() })
+        .eq('id', id);
+    } catch (err) { console.error('[stop] Failed:', err); }
+  });
+
+  // Optimistic update so UI responds instantly
+  await supabase.from('deployments')
+    .update({ status: 'stopping', updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  res.json({ status: 'stopping' });
+}
+
+// ─── POST /api/deploy/:id/start — wake a stopped container ──────────────────
+
+export async function startDeployment(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const supabase = getSupabase();
+
+  const { data } = await supabase
+    .from('deployments')
+    .select('azure_app_name, status, live_url')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (!data || (data as any).status !== 'stopped') {
+    res.status(400).json({ error: 'Deployment is not stopped' }); return;
+  }
+
+  const name = (data as any).azure_app_name as string;
+
+  await supabase.from('deployments')
+    .update({ status: 'starting', updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  setImmediate(async () => {
+    try {
+      await startContainer(name);
+      const now = new Date().toISOString();
+      await supabase.from('deployments')
+        .update({ status: 'live', live_since: now, last_accessed_at: now, updated_at: now })
+        .eq('id', id);
+    } catch (err) {
+      console.error('[start] Failed:', err);
+      await supabase.from('deployments')
+        .update({ status: 'failed', updated_at: new Date().toISOString() })
+        .eq('id', id);
+    }
+  });
+
+  res.json({ status: 'starting' });
+}
+
+// ─── POST /api/deploy/:id/keepalive — reset the auto-shutdown timer ──────────
+
+export async function keepAlive(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  await getSupabase()
+    .from('deployments')
+    .update({ last_accessed_at: new Date().toISOString() })
+    .eq('id', id);
+  res.json({ ok: true });
 }
 
 // ─── DELETE /api/deploy/:id — tear down a container ──────────────────────────
