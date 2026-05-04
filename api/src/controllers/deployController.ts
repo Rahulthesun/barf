@@ -49,7 +49,7 @@ export async function createDeployment(req: Request, res: Response): Promise<voi
   const supabase = getSupabase();
 
   // Look up the app
-  const q = supabase.from('oss_apps').select('id, name, slug, docker_image, default_port, deploy_env');
+  const q = supabase.from('oss_apps').select('id, name, slug, docker_image, default_port, deploy_env, deploy_command, requires_postgres');
   const { data: app, error: appErr } = bodyAppId
     ? await q.eq('id', bodyAppId).maybeSingle()
     : await q.eq('slug', app_slug).maybeSingle();
@@ -85,10 +85,12 @@ export async function createDeployment(req: Request, res: Response): Promise<voi
   setImmediate(() => {
     runDeployment({
       deploymentId,
-      appSlug:    (app as any).slug as string,
+      appSlug:          (app as any).slug as string,
       dockerImage,
-      port:       (app as any).default_port as number ?? 3000,
-      deployEnv:  (app as any).deploy_env as Record<string, string> ?? {},
+      port:             (app as any).default_port as number ?? 3000,
+      deployEnv:        (app as any).deploy_env as Record<string, string> ?? {},
+      deployCommand:    (app as any).deploy_command as string[] ?? undefined,
+      requiresPostgres: (app as any).requires_postgres as boolean ?? false,
     }).catch(err => console.error('[deploy] Unhandled error:', err));
   });
 
@@ -207,13 +209,14 @@ export async function deleteDeployment(req: Request, res: Response): Promise<voi
 
   const { data, error } = await supabase
     .from('deployments')
-    .select('azure_app_name, status')
+    .select('azure_app_name, status, cf_dns_record_id')
     .eq('id', id)
     .maybeSingle();
 
   if (error || !data) { res.status(404).json({ error: 'Deployment not found' }); return; }
 
-  const azureName = (data as any).azure_app_name as string | null;
+  const azureName    = (data as any).azure_app_name as string | null;
+  const cfRecordId   = (data as any).cf_dns_record_id as string | null;
 
   // Mark as deleting immediately
   await supabase
@@ -224,7 +227,7 @@ export async function deleteDeployment(req: Request, res: Response): Promise<voi
   // Tear down in background if we have an Azure container to delete
   if (azureName) {
     setImmediate(() => {
-      tearDownDeployment(azureName)
+      tearDownDeployment(azureName, cfRecordId)
         .then(() => supabase.from('deployments').delete().eq('id', id))
         .catch(async err => {
           console.error('[teardown] Failed:', err);
