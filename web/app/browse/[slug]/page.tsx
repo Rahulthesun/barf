@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { use } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import {
   ArrowLeft, ExternalLink, Star, Loader2, CheckCircle2,
   Server, Globe, Shield, Package, Square, Play, Trash2, Zap, ArrowUpRight,
@@ -11,6 +12,7 @@ import {
 import { GithubIcon } from "../../components/GithubIcon";
 import { AppIcon } from "../../components/AppIcon";
 import { Nav } from "../../components/Nav";
+import { createClient } from "@/utils/supabase/client";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 const AUTO_STOP_HOURS = 4;
@@ -75,6 +77,9 @@ function fmtElapsed(sec: number) {
 
 // ── Deploy Panel ─────────────────────────────────────────────────────────────
 function DeployPanel({ app }: { app: OssApp }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const supabase = createClient();
   const [dep, setDep] = useState<Deployment | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [shutdownMs, setShutdownMs] = useState(0);
@@ -145,8 +150,19 @@ function DeployPanel({ app }: { app: OssApp }) {
   async function handleDeploy() {
     setElapsed(0);
     setDeployError(null);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      router.push(`/login?next=${encodeURIComponent(pathname)}`);
+      return;
+    }
+
     const r = await fetch(`${API}/api/deploy`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+      },
       body: JSON.stringify({ app_slug: app.slug, app_id: app.id }),
     });
     if (!r.ok) {
@@ -182,7 +198,15 @@ function DeployPanel({ app }: { app: OssApp }) {
 
   async function handleTearDown() {
     if (!dep || !confirm(`Permanently delete this ${app.name} container?`)) return;
-    await fetch(`${API}/api/deploy/${dep.id}`, { method: "DELETE" });
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      router.push(`/login?next=${encodeURIComponent(pathname)}`);
+      return;
+    }
+    await fetch(`${API}/api/deploy/${dep.id}`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${session.access_token}` },
+    });
     localStorage.removeItem(storageKey);
     setDep(null); stopPolling();
   }

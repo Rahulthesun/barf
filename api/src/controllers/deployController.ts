@@ -37,6 +37,7 @@ export async function listDeployments(req: Request, res: Response): Promise<void
 
 export async function createDeployment(req: Request, res: Response): Promise<void> {
   const { app_slug, app_id: bodyAppId } = req.body as { app_slug?: string; app_id?: string };
+  const userId = ((req as any).user?.id ?? null) as string | null;
 
   if (!app_slug) { res.status(400).json({ error: 'Missing app_slug' }); return; }
 
@@ -86,6 +87,7 @@ export async function createDeployment(req: Request, res: Response): Promise<voi
       app_id:     (app as any).id,
       app_slug:   slug,
       status:     'queued',
+      user_id:    userId,
       updated_at: new Date().toISOString(),
     })
     .select('id, status, created_at')

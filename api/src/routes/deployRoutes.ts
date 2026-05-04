@@ -8,15 +8,17 @@ import {
   keepAlive,
   deleteDeployment,
 } from '../controllers/deployController';
+import { deployLimit, pollLimit } from '../middleware/rateLimiter';
+import { requireAuth } from '../middleware/requireAuth';
 
 const router = Router();
 
 router.get('/',               listDeployments);
-router.post('/',              createDeployment);
-router.get('/:id',            getDeploymentStatus);
-router.post('/:id/stop',      stopDeployment);
-router.post('/:id/start',     startDeployment);
-router.post('/:id/keepalive', keepAlive);
-router.delete('/:id',         deleteDeployment);
+router.post('/',              requireAuth, deployLimit, createDeployment);
+router.get('/:id',            pollLimit, getDeploymentStatus);
+router.post('/:id/stop',      pollLimit, stopDeployment);
+router.post('/:id/start',     pollLimit, startDeployment);
+router.post('/:id/keepalive', pollLimit, keepAlive);
+router.delete('/:id',         requireAuth, pollLimit, deleteDeployment);
 
 export default router;

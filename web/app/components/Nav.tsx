@@ -2,11 +2,26 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { GithubIcon } from "./GithubIcon";
+import { createClient } from "@/utils/supabase/client";
 
 export function Nav() {
   const path = usePathname();
+  const router = useRouter();
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data: { user } }) => {
+      setEmail(user?.email ?? null);
+    });
+  }, []);
+
+  async function handleSignOut() {
+    await createClient().auth.signOut();
+    router.push("/");
+  }
 
   const links = [
     { label: "Browse", href: "/browse" },
@@ -40,14 +55,29 @@ export function Nav() {
             <GithubIcon className="w-4 h-4" />
             Star
           </Link>
-          <Link href="/dashboard"
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-[#CFCFCF] text-[#545454] text-sm font-medium px-3.5 py-1.5 hover:border-[#7D7D7D] hover:text-[#252525] transition-colors">
-            Dashboard
-          </Link>
-          <Link href="/browse"
-            className="inline-flex items-center gap-1.5 rounded-md bg-[#252525] text-white text-sm font-medium px-3.5 py-1.5 hover:bg-[#545454] transition-colors">
-            Browse Apps
-          </Link>
+          {email ? (
+            <>
+              <span className="hidden sm:block text-xs text-[#7D7D7D] max-w-[140px] truncate" title={email}>
+                {email}
+              </span>
+              <button
+                onClick={handleSignOut}
+                className="inline-flex items-center gap-1.5 rounded-md border border-[#CFCFCF] text-[#545454] text-sm font-medium px-3.5 py-1.5 hover:border-[#7D7D7D] hover:text-[#252525] transition-colors">
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/dashboard"
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-[#CFCFCF] text-[#545454] text-sm font-medium px-3.5 py-1.5 hover:border-[#7D7D7D] hover:text-[#252525] transition-colors">
+                Dashboard
+              </Link>
+              <Link href="/login"
+                className="inline-flex items-center gap-1.5 rounded-md bg-[#252525] text-white text-sm font-medium px-3.5 py-1.5 hover:bg-[#545454] transition-colors">
+                Sign in
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
