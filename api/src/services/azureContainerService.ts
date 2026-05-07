@@ -237,13 +237,14 @@ export async function runDeployment(params: {
         ...(deployCommand ? { command: deployCommand } : {}),
       };
 
-      // ── Caddy sidecar — HTTP reverse proxy, Cloudflare handles TLS ────────
-      const caddyContainer = {
-        name:    'caddy',
-        image:   'caddy:2-alpine',
-        command: ['caddy', 'reverse-proxy', '--from', ':80', '--to', `localhost:${port}`],
+      // ── Nginx sidecar — reverse proxy + strips X-Frame-Options / CSP so apps can be iframed ──
+      const nginxConf = `server{listen 80;client_max_body_size 50m;location /{proxy_pass http://localhost:${port};proxy_set_header Host $http_host;proxy_set_header X-Forwarded-Proto https;proxy_set_header X-Real-IP $remote_addr;proxy_hide_header X-Frame-Options;proxy_hide_header Content-Security-Policy;add_header Content-Security-Policy "frame-ancestors *" always;proxy_http_version 1.1;proxy_set_header Upgrade $http_upgrade;proxy_set_header Connection "upgrade";proxy_read_timeout 300s;}}`;
+      const proxyContainer = {
+        name:    'proxy',
+        image:   'nginx:alpine',
+        command: ['sh', '-c', `printf '%s' '${nginxConf}' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'`],
         ports:   [{ port: 80 }],
-        resources: { requests: { cpu: 0.25, memoryInGB: 0.3 } },
+        resources: { requests: { cpu: 0.1, memoryInGB: 0.2 } },
       };
 
       // ── PostgreSQL sidecar (when required) ────────────────────────────────
@@ -262,7 +263,7 @@ export async function runDeployment(params: {
 
       const containers = [
         appContainer,
-        caddyContainer,
+        proxyContainer,
         ...(pgContainer ? [pgContainer] : []),
       ];
 
