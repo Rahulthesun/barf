@@ -25,6 +25,7 @@ export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
     deploy_env: {
       N8N_SECURE_COOKIE:  'false',
       N8N_ENCRYPTION_KEY: '{{SECRET_KEY}}',
+      N8N_PROXY_HOPS:     '1',
     },
     deployable: true,
   },
