@@ -30,9 +30,10 @@ interface ChatMessage {
 
 // POST /api/ai/onboard — streaming SSE chat for onboarding a deployed app
 export async function onboardChat(req: Request, res: Response): Promise<void> {
-  const { app_slug, live_url, messages } = req.body as {
+  const { app_slug, live_url, context, messages } = req.body as {
     app_slug?: string;
     live_url?: string;
+    context?: string;
     messages?: ChatMessage[];
   };
 
@@ -45,7 +46,9 @@ export async function onboardChat(req: Request, res: Response): Promise<void> {
   const effectiveLiveUrl = live_url || `https://${app_slug}.barf.app`;
   const systemPrompt = guide
     ? buildSystemPrompt(guide, effectiveLiveUrl)
-    : `You are Barfy, an onboarding assistant for ${app_slug} deployed via barf.dev. Help the user get started.`;
+    : context
+      ? `You are Barfy, a friendly AI assistant embedded in barf.dev — a platform that lets users deploy open-source tools like n8n, Gitea, Umami, and Vaultwarden in minutes on Azure.\n\nCurrent context: ${context}\n\nBe concise, practical, and friendly. Use bullet points for lists. Keep responses under 150 words unless the user asks for more detail.`
+      : `You are Barfy, an onboarding assistant for ${app_slug ?? 'this app'} deployed via barf.dev. Help the user get started.`;
 
   const userMessages: ChatMessage[] = Array.isArray(messages) ? messages : [];
 
