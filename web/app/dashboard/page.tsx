@@ -22,6 +22,7 @@ import {
 import { AppIcon } from "../components/AppIcon";
 import { Nav } from "../components/Nav";
 import { BarfyWidget } from "../components/BarfyWidget";
+import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
 import { createClient } from "@/utils/supabase/client";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -125,6 +126,8 @@ function DeploymentCard({
   onStart: (id: string) => void;
   onKeepAlive: (id: string) => void;
 }) {
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   const isTransient = dep.status === "deploying" || dep.status === "queued"
     || dep.status === "stopping" || dep.status === "starting" || dep.status === "deleting";
 
@@ -134,6 +137,14 @@ function DeploymentCard({
     : 0;
 
   return (
+    <>
+    {showDeleteModal && (
+      <DeleteConfirmModal
+        appName={dep.app_slug}
+        onConfirm={() => { setShowDeleteModal(false); onDelete(dep.id); }}
+        onCancel={() => setShowDeleteModal(false)}
+      />
+    )}
     <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
       {/* Card body */}
       <div className="p-5 flex flex-col gap-3">
@@ -246,11 +257,7 @@ function DeploymentCard({
               <Play className="w-3.5 h-3.5" /> Wake up
             </button>
             <button
-              onClick={() => {
-                if (confirm(`Tear down ${dep.app_slug}? This will delete the container.`)) {
-                  onDelete(dep.id);
-                }
-              }}
+              onClick={() => setShowDeleteModal(true)}
               className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
               title="Delete"
             >
@@ -269,11 +276,7 @@ function DeploymentCard({
               Retry <ArrowRight className="w-3.5 h-3.5" />
             </Link>
             <button
-              onClick={() => {
-                if (confirm(`Tear down ${dep.app_slug}? This will delete the container.`)) {
-                  onDelete(dep.id);
-                }
-              }}
+              onClick={() => setShowDeleteModal(true)}
               className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
               title="Delete"
             >
@@ -283,6 +286,7 @@ function DeploymentCard({
         )}
       </div>
     </div>
+    </>
   );
 }
 

@@ -83,6 +83,26 @@ export async function createDeployment(req: Request, res: Response): Promise<voi
     return;
   }
 
+  // One instance per app per user — block if any non-terminal deployment exists
+  if (userId) {
+    const { data: existing } = await supabase
+      .from('deployments')
+      .select('id, status')
+      .eq('user_id', userId)
+      .eq('app_slug', slug)
+      .not('status', 'in', '("failed","deleting")')
+      .maybeSingle();
+
+    if (existing) {
+      res.status(409).json({
+        error: `You already have a ${slug} deployment.`,
+        existing_id:     (existing as any).id,
+        existing_status: (existing as any).status,
+      });
+      return;
+    }
+  }
+
   // Create the deployment record (queued)
   const { data: deployment, error: depErr } = await supabase
     .from('deployments')

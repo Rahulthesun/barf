@@ -12,6 +12,7 @@ import { GithubIcon } from "../../components/GithubIcon";
 import { AppIcon } from "../../components/AppIcon";
 import { Nav } from "../../components/Nav";
 import { Barfy } from "../../components/BarfAI";
+import { DeleteConfirmModal } from "../../components/DeleteConfirmModal";
 import { createClient } from "@/utils/supabase/client";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -88,6 +89,7 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
   const [shutdownMs, setShutdownMs] = useState(0);
   const [checking, setChecking] = useState(true);
   const [deployError, setDeployError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAt = useRef<number | null>(null);
@@ -186,6 +188,20 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
     });
     if (!r.ok) {
       const body = await r.json().catch(() => ({}));
+      // Already have one — load the existing deployment instead of showing an error
+      if (r.status === 409 && body.existing_id) {
+        const headers = await authHeaders();
+        const existing = await fetch(`${API}/api/deploy/${body.existing_id}`, { headers })
+          .then(res => res.ok ? res.json() : null);
+        if (existing) {
+          localStorage.setItem(storageKey, existing.id);
+          setDep(existing);
+          if (existing.status === "queued" || existing.status === "deploying" || existing.status === "starting") {
+            startTick(); startPolling(existing.id);
+          }
+          return;
+        }
+      }
       setDeployError(body.error ?? "Deployment failed. Please try again.");
       return;
     }
@@ -219,7 +235,13 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
   }
 
   async function handleTearDown() {
-    if (!dep || !confirm(`Permanently delete this ${app.name} container?`)) return;
+    if (!dep) return;
+    setShowDeleteModal(true);
+  }
+
+  async function confirmTearDown() {
+    setShowDeleteModal(false);
+    if (!dep) return;
     const { data: { session } } = await createClient().auth.getSession();
     if (!session) {
       router.push(`/login?next=${encodeURIComponent(pathname)}`);
@@ -239,6 +261,14 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
   const isStopping  = st === "stopping";
 
   return (
+    <>
+    {showDeleteModal && (
+      <DeleteConfirmModal
+        appName={app.name}
+        onConfirm={confirmTearDown}
+        onCancel={() => setShowDeleteModal(false)}
+      />
+    )}
     <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
 
       {/* header */}
@@ -438,6 +468,7 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
         )}
       </div>
     </div>
+    </>
   );
 }
 
