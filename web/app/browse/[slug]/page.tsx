@@ -100,12 +100,19 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
     if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
   };
 
+  async function authHeaders(): Promise<HeadersInit> {
+    const { data: { session } } = await createClient().auth.getSession();
+    return session ? { "Authorization": `Bearer ${session.access_token}` } : {};
+  }
+
   const fetchStatus = useCallback(async (id: string) => {
-    const r = await fetch(`${API}/api/deploy/${id}`);
+    const headers = await authHeaders();
+    const r = await fetch(`${API}/api/deploy/${id}`, { headers });
     if (!r.ok) return;
     const d: Deployment = await r.json();
     setDep(d);
     if (d.status === "live" || d.status === "stopped" || d.status === "failed") stopPolling();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startTick = useCallback(() => {
@@ -139,7 +146,8 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
   useEffect(() => {
     const stored = localStorage.getItem(storageKey);
     if (!stored) { setChecking(false); return; }
-    fetch(`${API}/api/deploy/${stored}`)
+    authHeaders()
+      .then(headers => fetch(`${API}/api/deploy/${stored}`, { headers }))
       .then(r => r.ok ? r.json() : null)
       .then((data: Deployment | null) => {
         if (!data || data.status === "failed") {
@@ -188,14 +196,16 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
 
   async function handleStop() {
     if (!dep) return;
-    await fetch(`${API}/api/deploy/${dep.id}/stop`, { method: "POST" });
+    const headers = await authHeaders();
+    await fetch(`${API}/api/deploy/${dep.id}/stop`, { method: "POST", headers });
     setDep(d => d ? { ...d, status: "stopping" } : d);
     startPolling(dep.id);
   }
 
   async function handleStart() {
     if (!dep) return;
-    await fetch(`${API}/api/deploy/${dep.id}/start`, { method: "POST" });
+    const headers = await authHeaders();
+    await fetch(`${API}/api/deploy/${dep.id}/start`, { method: "POST", headers });
     setElapsed(0); startTick();
     setDep(d => d ? { ...d, status: "starting" } : d);
     startPolling(dep.id);
@@ -203,7 +213,8 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
 
   async function handleKeepAlive() {
     if (!dep) return;
-    await fetch(`${API}/api/deploy/${dep.id}/keepalive`, { method: "POST" });
+    const headers = await authHeaders();
+    await fetch(`${API}/api/deploy/${dep.id}/keepalive`, { method: "POST", headers });
     setDep(d => d ? { ...d, last_accessed_at: new Date().toISOString() } : d);
   }
 
