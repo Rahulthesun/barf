@@ -60,6 +60,10 @@ export function Nav() {
               <span className="hidden sm:block text-xs text-[#7D7D7D] max-w-[140px] truncate" title={email}>
                 {email}
               </span>
+              <Link href="/dashboard"
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-[#CFCFCF] text-[#545454] text-sm font-medium px-3.5 py-1.5 hover:border-[#7D7D7D] hover:text-[#252525] transition-colors">
+                Dashboard
+              </Link>
               <button
                 onClick={handleSignOut}
                 className="inline-flex items-center gap-1.5 rounded-md border border-[#CFCFCF] text-[#545454] text-sm font-medium px-3.5 py-1.5 hover:border-[#7D7D7D] hover:text-[#252525] transition-colors">
@@ -68,10 +72,6 @@ export function Nav() {
             </>
           ) : (
             <>
-              <Link href="/dashboard"
-                className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-[#CFCFCF] text-[#545454] text-sm font-medium px-3.5 py-1.5 hover:border-[#7D7D7D] hover:text-[#252525] transition-colors">
-                Dashboard
-              </Link>
               <Link href="/login"
                 className="inline-flex items-center gap-1.5 rounded-md bg-[#252525] text-white text-sm font-medium px-3.5 py-1.5 hover:bg-[#545454] transition-colors">
                 Sign in

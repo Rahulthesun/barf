@@ -79,7 +79,6 @@ function fmtElapsed(sec: number) {
 function DeployPanel({ app }: { app: OssApp }) {
   const router = useRouter();
   const pathname = usePathname();
-  const supabase = createClient();
   const [dep, setDep] = useState<Deployment | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [shutdownMs, setShutdownMs] = useState(0);
@@ -151,7 +150,7 @@ function DeployPanel({ app }: { app: OssApp }) {
     setElapsed(0);
     setDeployError(null);
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await createClient().auth.getSession();
     if (!session) {
       router.push(`/login?next=${encodeURIComponent(pathname)}`);
       return;
@@ -198,7 +197,7 @@ function DeployPanel({ app }: { app: OssApp }) {
 
   async function handleTearDown() {
     if (!dep || !confirm(`Permanently delete this ${app.name} container?`)) return;
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await createClient().auth.getSession();
     if (!session) {
       router.push(`/login?next=${encodeURIComponent(pathname)}`);
       return;
