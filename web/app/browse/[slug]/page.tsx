@@ -6,7 +6,7 @@ import { use } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
   ArrowLeft, ExternalLink, Star, Loader2, CheckCircle2,
-  Server, Globe, Shield, Package, Square, Play, Trash2, Zap, ArrowUpRight,
+  Server, Globe, Shield, Package, Square, Play, Trash2, Zap, ArrowUpRight, Sparkles,
 } from "lucide-react";
 import { GithubIcon } from "../../components/GithubIcon";
 import { AppIcon } from "../../components/AppIcon";
@@ -372,12 +372,18 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
               )}
             </div>
 
-            <a href={dep.live_url} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 text-white font-semibold py-3 hover:bg-emerald-600 transition-colors text-[15px]">
-              <Globe className="w-4 h-4" />
-              Open {app.name}
-              <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-            </a>
+            <div className="flex gap-2">
+              <Link href={`/apps/${dep.id}`}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 text-white font-semibold py-3 hover:bg-violet-500 transition-colors text-[15px]">
+                <Sparkles className="w-4 h-4" />
+                Open with Barfy
+              </Link>
+              <a href={dep.live_url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center justify-center w-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                title="Open without Barfy">
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
 
             <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 px-3 py-2">
               <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 truncate block">{dep.live_url}</span>
