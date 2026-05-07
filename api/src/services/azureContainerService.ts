@@ -238,7 +238,7 @@ export async function runDeployment(params: {
       };
 
       // ── Nginx sidecar — reverse proxy + strips X-Frame-Options / CSP so apps can be iframed ──
-      const nginxConf = `server{listen 80;client_max_body_size 50m;location /{proxy_pass http://localhost:${port};proxy_set_header Host $http_host;proxy_set_header X-Forwarded-Proto https;proxy_set_header X-Real-IP $remote_addr;proxy_hide_header X-Frame-Options;proxy_hide_header Content-Security-Policy;add_header Content-Security-Policy "frame-ancestors *" always;proxy_http_version 1.1;proxy_set_header Upgrade $http_upgrade;proxy_set_header Connection "upgrade";proxy_read_timeout 300s;}}`;
+      const nginxConf = `server{listen 80;client_max_body_size 50m;location /{proxy_pass http://localhost:${port};proxy_set_header Host $http_host;proxy_set_header X-Forwarded-Proto https;proxy_set_header X-Real-IP $remote_addr;proxy_hide_header X-Frame-Options;proxy_hide_header Content-Security-Policy;add_header Content-Security-Policy "frame-ancestors *" always;proxy_http_version 1.1;proxy_set_header Upgrade $http_upgrade;proxy_set_header Connection "upgrade";proxy_read_timeout 300s;proxy_cookie_flags ~ samesite=none secure;}}`;
       const proxyContainer = {
         name:    'proxy',
         image:   'nginx:alpine',
