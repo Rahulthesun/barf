@@ -1,26 +1,184 @@
 @import "tailwindcss";
 
+/* ── Design tokens ─────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand */
+  --brand:         #7C3AED;
+  --brand-light:   #8B5CF6;
+  --brand-dim:     #EDE9FE;
+
+  /* Neutral – light */
+  --bg:            #FAFAFA;
+  --surface:       #FFFFFF;
+  --surface-raised:#F4F4F5;
+  --border:        #E4E4E7;
+  --border-strong: #A1A1AA;
+  --text-primary:  #09090B;
+  --text-secondary:#52525B;
+  --text-muted:    #A1A1AA;
+  --shadow-sm:     0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md:     0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg:     0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.04);
 }
 
+.dark {
+  /* Neutral – dark */
+  --bg:            #09090B;
+  --surface:       #18181B;
+  --surface-raised:#27272A;
+  --border:        #27272A;
+  --border-strong: #52525B;
+  --text-primary:  #FAFAFA;
+  --text-secondary:#A1A1AA;
+  --text-muted:    #52525B;
+  --shadow-sm:     0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-md:     0 4px 6px -1px rgb(0 0 0 / 0.4);
+  --shadow-lg:     0 10px 15px -3px rgb(0 0 0 / 0.4);
+}
+
+/* ── Tailwind theme extension ──────────────────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Expose tokens as Tailwind utilities */
+  --color-bg:            var(--bg);
+  --color-surface:       var(--surface);
+  --color-surface-raised:var(--surface-raised);
+  --color-border:        var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text-primary:  var(--text-primary);
+  --color-text-secondary:var(--text-secondary);
+  --color-text-muted:    var(--text-muted);
+  --color-brand:         var(--brand);
+  --color-brand-light:   var(--brand-light);
+  --color-brand-dim:     var(--brand-dim);
+
+  /* shadow utilities */
+  --shadow-token-sm: var(--shadow-sm);
+  --shadow-token-md: var(--shadow-md);
+  --shadow-token-lg: var(--shadow-lg);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* hide scrollbar but keep scroll */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Focus ring ────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* ── Selection ─────────────────────────────────────────────────────────────── */
+::selection {
+  background-color: #7C3AED33;
+  color: var(--text-primary);
+}
+
+/* ── Noise texture overlay (applied via class) ─────────────────────────────── */
+.noise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Gradient text ─────────────────────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #A78BFA 0%, #C4B5FD 50%, #DDD6FE 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Grid background ───────────────────────────────────────────────────────── */
+.grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ── Card glow on hover ────────────────────────────────────────────────────── */
+.card-glow {
+  transition: box-shadow 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
+}
+.card-glow:hover {
+  box-shadow: 0 0 0 1px rgba(124,58,237,0.15), 0 8px 24px rgba(124,58,237,0.08);
+  transform: translateY(-1px);
+}
+
+/* ── Hero glow orb animations ──────────────────────────────────────────────── */
+@keyframes orb-breathe {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(18px, -28px) scale(1.07); }
+}
+
+@keyframes orb-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(-22px, 16px) scale(0.94); }
+  66%      { transform: translate(18px, -18px) scale(1.05); }
+}
+
+/* ── Floating card animations (5 variants for stagger) ─────────────────────── */
+@keyframes float-a {
+  0%, 100% { transform: translateY(0px);  }
+  50%      { transform: translateY(-14px); }
+}
+@keyframes float-b {
+  0%, 100% { transform: translateY(0px);  }
+  50%      { transform: translateY(-10px); }
+}
+@keyframes float-c {
+  0%, 100% { transform: translateY(0px);  }
+  50%      { transform: translateY(-18px); }
+}
+@keyframes float-d {
+  0%, 100% { transform: translateY(0px); }
+  50%      { transform: translateY(-8px); }
+}
+@keyframes float-e {
+  0%, 100% { transform: translateY(0px);  }
+  50%      { transform: translateY(-12px); }
+}
+
+/* ── Live badge pop-in ─────────────────────────────────────────────────────── */
+@keyframes badge-pop {
+  0%   { transform: scale(0) rotate(-8deg); opacity: 0; }
+  65%  { transform: scale(1.18) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg);   opacity: 1; }
+}
+
+/* ── Countdown badge pulsing border ───────────────────────────────────────── */
+@keyframes countdown-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+    border-color: rgba(139, 92, 246, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(139, 92, 246, 0.07);
+    border-color: rgba(139, 92, 246, 0.8);
+  }
 }

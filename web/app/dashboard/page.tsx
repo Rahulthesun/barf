@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   ArrowRight,
   Globe,
@@ -47,7 +46,7 @@ function statusBadge(status: DeployStatus) {
   const map: Record<DeployStatus, { label: string; cls: string; icon: React.ReactNode }> = {
     queued: {
       label: "Queued",
-      cls: "bg-[#F0F0F0] dark:bg-zinc-800 text-[#7D7D7D] border-[#CFCFCF] dark:border-[#CFCFCF]",
+      cls: "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700",
       icon: <Clock className="w-3 h-3" />,
     },
     deploying: {
@@ -67,7 +66,7 @@ function statusBadge(status: DeployStatus) {
     },
     stopped: {
       label: "Sleeping",
-      cls: "bg-[#F0F0F0] dark:bg-zinc-800 text-[#7D7D7D] border-[#CFCFCF] dark:border-[#CFCFCF]",
+      cls: "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700",
       icon: <Moon className="w-3 h-3" />,
     },
     starting: {
@@ -133,16 +132,16 @@ function DeploymentCard({
     : 0;
 
   return (
-    <div className="rounded-2xl border border-[#CFCFCF] dark:border-[#CFCFCF] bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4">
+    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 flex flex-col gap-4 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
       {/* header row */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-[#F0F0F0] dark:bg-zinc-800 flex items-center justify-center shrink-0">
-            <AppIcon appSlug={dep.app_slug} fallbackLetter={dep.app_slug.charAt(0).toUpperCase()} size={18} className="text-[#545454] dark:text-[#CFCFCF]" />
+          <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+            <AppIcon appSlug={dep.app_slug} fallbackLetter={dep.app_slug.charAt(0).toUpperCase()} size={18} className="text-zinc-500 dark:text-zinc-400" />
           </div>
           <div className="min-w-0">
-            <p className="font-semibold text-[15px] truncate">{dep.app_slug}</p>
-            <p className="text-xs text-[#7D7D7D] font-mono mt-0.5 truncate">{dep.id.slice(0, 8)}…</p>
+            <p className="font-semibold text-[15px] text-zinc-900 dark:text-zinc-100 truncate">{dep.app_slug}</p>
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 font-mono mt-0.5 truncate">{dep.id.slice(0, 8)}…</p>
           </div>
         </div>
         {statusBadge(dep.status)}
@@ -154,7 +153,7 @@ function DeploymentCard({
           href={dep.live_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-lg border border-[#CFCFCF] dark:border-[#CFCFCF] bg-white dark:bg-zinc-800 px-3 py-2 text-xs font-mono text-emerald-600 dark:text-emerald-400 hover:bg-[#F0F0F0] dark:hover:bg-zinc-700 transition-colors truncate"
+          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-xs font-mono text-emerald-600 dark:text-emerald-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors truncate"
         >
           <Globe className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">{dep.live_url}</span>
@@ -163,59 +162,56 @@ function DeploymentCard({
       )}
 
       {dep.azure_app_name && !dep.live_url && dep.status !== "stopped" && (
-        <p className="text-xs font-mono text-[#7D7D7D] truncate">
-          <span className="text-[#CFCFCF] dark:text-[#545454]">container:</span> {dep.azure_app_name}
+        <p className="text-xs font-mono text-zinc-500 dark:text-zinc-400 truncate">
+          <span className="text-zinc-300 dark:text-zinc-600">container:</span> {dep.azure_app_name}
         </p>
       )}
 
       {/* auto-shutdown countdown */}
       {dep.status === "live" && shutdownMs > 0 && (
-        <p className="text-xs font-mono text-[#7D7D7D]">
-          Stops in <span className="text-[#545454] dark:text-[#CFCFCF]">{fmtCountdown(shutdownMs)}</span>
+        <p className="text-xs font-mono text-zinc-400 dark:text-zinc-500">
+          Stops in <span className="text-zinc-600 dark:text-zinc-300">{fmtCountdown(shutdownMs)}</span>
         </p>
       )}
 
       {/* footer row */}
-      <div className="flex items-center justify-between pt-1 border-t border-[#CFCFCF] dark:border-[#CFCFCF]">
-        <span className="text-xs text-[#7D7D7D] font-mono">{timeSince(dep.created_at)}</span>
+      <div className="flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-800">
+        <span className="text-xs text-zinc-400 dark:text-zinc-500 font-mono">{timeSince(dep.created_at)}</span>
         <div className="flex items-center gap-2 flex-wrap justify-end">
 
-          {/* deploying/transient — just refresh */}
           {isTransient && (
             <button
               onClick={onRefresh}
-              className="inline-flex items-center gap-1 text-xs text-[#7D7D7D] hover:text-[#545454] dark:hover:text-[#CFCFCF] transition-colors"
+              className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
             >
               <RefreshCw className="w-3 h-3" /> Refresh
             </button>
           )}
 
-          {/* live controls */}
           {dep.status === "live" && (
             <>
               <button
                 onClick={() => onKeepAlive(dep.id)}
-                className="inline-flex items-center gap-1 text-xs text-[#7D7D7D] hover:text-[#545454] dark:hover:text-[#CFCFCF] transition-colors"
+                className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
                 title="Reset auto-shutdown timer"
               >
                 <Zap className="w-3 h-3 text-yellow-500" /> Keep alive
               </button>
               <button
                 onClick={() => onStop(dep.id)}
-                className="inline-flex items-center gap-1 text-xs text-[#7D7D7D] hover:text-[#545454] dark:hover:text-[#CFCFCF] transition-colors"
+                className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
               >
                 <Square className="w-3 h-3" /> Stop
               </button>
               <Link
                 href={`/browse/${dep.app_slug}`}
-                className="inline-flex items-center gap-1 text-xs text-[#7D7D7D] hover:text-[#545454] dark:hover:text-[#CFCFCF] transition-colors"
+                className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
               >
                 Open <ArrowRight className="w-3 h-3" />
               </Link>
             </>
           )}
 
-          {/* stopped controls */}
           {dep.status === "stopped" && (
             <>
               <button
@@ -237,8 +233,7 @@ function DeploymentCard({
             </>
           )}
 
-          {/* failed */}
-          {(dep.status === "failed") && (
+          {dep.status === "failed" && (
             <>
               <Link
                 href={`/browse/${dep.app_slug}`}
@@ -264,21 +259,32 @@ function DeploymentCard({
   );
 }
 
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <span className="text-[10px] font-bold font-mono uppercase tracking-[0.15em] text-zinc-400 dark:text-zinc-600">
+        {label}
+      </span>
+      <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800" />
+    </div>
+  );
+}
+
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-32 gap-5 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-[#F0F0F0] dark:bg-zinc-800 flex items-center justify-center">
-        <Server className="w-7 h-7 text-[#7D7D7D]" />
+      <div className="w-16 h-16 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+        <Server className="w-7 h-7 text-zinc-400 dark:text-zinc-600" />
       </div>
       <div>
-        <h3 className="text-lg font-semibold">No deployments yet</h3>
-        <p className="text-sm text-[#7D7D7D] dark:text-[#7D7D7D] mt-1 max-w-xs">
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">No deployments yet</h3>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs">
           Browse open-source alternatives and hit &quot;Host This&quot; to spin up your first deployment.
         </p>
       </div>
       <Link
         href="/browse"
-        className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white text-zinc-50 dark:text-[#252525] font-semibold px-6 py-3 hover:opacity-90 transition-opacity text-sm"
+        className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold px-6 py-3 hover:opacity-90 transition-opacity text-sm"
       >
         Browse apps
         <ArrowRight className="w-4 h-4" />
@@ -341,7 +347,6 @@ export default function DashboardPage() {
     setDeployments(prev => prev.map(d => d.id === id ? { ...d, last_accessed_at: now } : d));
   }, []);
 
-  // auto-refresh while any deployment is in a transient state
   useEffect(() => {
     const hasTransient = deployments.some(d =>
       d.status === "deploying" || d.status === "queued" ||
@@ -353,7 +358,7 @@ export default function DashboardPage() {
   }, [deployments, fetchDeployments]);
 
   const live    = deployments.filter(d => d.status === "live");
-  const active  = deployments.filter(d => d.status === "deploying" || d.status === "queued" || d.status === "starting" || d.status === "stopping" || d.status === "deleting");
+  const active  = deployments.filter(d => ["deploying", "queued", "starting", "stopping", "deleting"].includes(d.status));
   const stopped = deployments.filter(d => d.status === "stopped");
   const failed  = deployments.filter(d => d.status === "failed");
 
@@ -366,23 +371,23 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-[#252525]">
+    <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
 
       <Nav />
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-8 py-10">
 
-        {/* ── Page header ────────────────────────────────────────────────── */}
-        <div className="flex items-start justify-between gap-4 mb-8">
+        {/* page header */}
+        <div className="flex items-start justify-between gap-4 mb-10">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">My Deployments</h1>
-            <p className="text-[#7D7D7D] dark:text-[#7D7D7D] text-sm mt-1.5">
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">My Deployments</h1>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1.5">
               {loading ? "Loading…" : `${deployments.length} total · ${live.length} live · ${stopped.length} sleeping`}
             </p>
           </div>
           <button
             onClick={fetchDeployments}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#CFCFCF] dark:border-[#CFCFCF] bg-white dark:bg-zinc-900 text-[#545454] dark:text-[#7D7D7D] text-sm font-medium px-3.5 py-2 hover:bg-[#F8F8F8] dark:hover:bg-zinc-800 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 text-sm font-medium px-3.5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Refresh
@@ -392,56 +397,44 @@ export default function DashboardPage() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border border-[#CFCFCF] dark:border-[#CFCFCF] bg-white dark:bg-zinc-900 p-5 h-40 animate-pulse" />
+              <div key={i} className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 h-40 animate-pulse" />
             ))}
           </div>
         ) : deployments.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-10">
 
-            {/* In progress */}
             {active.length > 0 && (
               <section>
-                <h2 className="text-[11px] font-mono uppercase tracking-widest text-[#7D7D7D] mb-4">
-                  In progress ({active.length})
-                </h2>
+                <SectionHeader label={`In progress (${active.length})`} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {active.map(d => <DeploymentCard key={d.id} dep={d} {...cardProps} />)}
                 </div>
               </section>
             )}
 
-            {/* Live */}
             {live.length > 0 && (
               <section>
-                <h2 className="text-[11px] font-mono uppercase tracking-widest text-[#7D7D7D] mb-4">
-                  Live ({live.length})
-                </h2>
+                <SectionHeader label={`Live (${live.length})`} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {live.map(d => <DeploymentCard key={d.id} dep={d} {...cardProps} />)}
                 </div>
               </section>
             )}
 
-            {/* Sleeping */}
             {stopped.length > 0 && (
               <section>
-                <h2 className="text-[11px] font-mono uppercase tracking-widest text-[#7D7D7D] mb-4">
-                  Sleeping ({stopped.length})
-                </h2>
+                <SectionHeader label={`Sleeping (${stopped.length})`} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {stopped.map(d => <DeploymentCard key={d.id} dep={d} {...cardProps} />)}
                 </div>
               </section>
             )}
 
-            {/* Failed */}
             {failed.length > 0 && (
               <section>
-                <h2 className="text-[11px] font-mono uppercase tracking-widest text-[#7D7D7D] mb-4">
-                  Failed ({failed.length})
-                </h2>
+                <SectionHeader label={`Failed (${failed.length})`} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {failed.map(d => <DeploymentCard key={d.id} dep={d} {...cardProps} />)}
                 </div>
@@ -453,11 +446,10 @@ export default function DashboardPage() {
 
       </main>
 
-      {/* ── Footer ──────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-[#CFCFCF] dark:border-[#CFCFCF] mt-auto">
-        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 flex items-center justify-between">
-          <span className="font-mono text-xs font-bold text-[#7D7D7D]">barf. © 2025</span>
-          <Link href="/browse" className="text-xs text-[#7D7D7D] hover:text-[#545454] dark:hover:text-[#CFCFCF] transition-colors">
+      <footer className="border-t border-zinc-200 dark:border-zinc-800 mt-auto bg-white dark:bg-zinc-950">
+        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-5 flex items-center justify-between">
+          <span className="font-mono text-[11px] font-bold text-zinc-400 dark:text-zinc-600">barf. © 2026</span>
+          <Link href="/browse" className="text-[11px] text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">
             Browse apps →
           </Link>
         </div>
