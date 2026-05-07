@@ -13,10 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 import { ThemeProvider } from 'next-themes';
+import { LaunchBanner } from './components/LaunchBanner';
 
 export const metadata: Metadata = {
-  title: "BARF Platform",
-  description: "Personalized SaaS Extraction",
+  title: "barf. — Deploy open-source apps in 2 minutes",
+  description: "Browse 50+ open-source alternatives to expensive SaaS tools and deploy any of them in under 2 minutes. Free until May 12, 2026.",
 };
 
 export default function RootLayout({
@@ -35,6 +36,7 @@ export default function RootLayout({
           attribute="class"
           defaultTheme="system" enableSystem
         >
+          <LaunchBanner />
           {children}
         </ThemeProvider>
       </body>

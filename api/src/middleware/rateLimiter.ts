@@ -33,3 +33,11 @@ export const aiLimit = rateLimit({
   max: 10,
   message: { error: 'AI usage limit reached. Try again in an hour.' },
 });
+
+// Onboarding chat — generous limit suitable for multi-turn conversations
+export const chatLimit = rateLimit({
+  ...base,
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 60,
+  message: { error: 'Chat limit reached (60 messages/hr). Try again in an hour.' },
+});

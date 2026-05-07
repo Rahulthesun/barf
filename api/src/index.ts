@@ -6,8 +6,9 @@ import buildRoutes    from './routes/buildRoutes';
 import downloadRoutes from './routes/downloadRoutes';
 import appsRoutes     from './routes/appsRoutes';
 import deployRoutes   from './routes/deployRoutes';
+import aiRoutes       from './routes/aiRoutes';
 import { runAutoShutdown } from './services/azureContainerService';
-import { browseLimit, aiLimit } from './middleware/rateLimiter';
+import { browseLimit } from './middleware/rateLimiter';
 
 dotenv.config();
 
@@ -17,11 +18,12 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/extract',  aiLimit, extractRoutes);
-app.use('/api/build',    aiLimit, buildRoutes);
+app.use('/api/extract',  extractRoutes);
+app.use('/api/build',    buildRoutes);
 app.use('/api/download', downloadRoutes);
 app.use('/api/apps',     browseLimit, appsRoutes);
-app.use('/api/deploy',   deployRoutes); // Temporary, replace with buildRoutes when implemented
+app.use('/api/deploy',   deployRoutes);
+app.use('/api/ai',       aiRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
