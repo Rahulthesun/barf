@@ -7,6 +7,7 @@ import {
   startDeployment,
   keepAlive,
   deleteDeployment,
+  redeployDeployment,
 } from '../controllers/deployController';
 import { deployLimit, pollLimit } from '../middleware/rateLimiter';
 import { requireAuth } from '../middleware/requireAuth';
@@ -19,6 +20,7 @@ router.get('/:id',            requireAuth, pollLimit, getDeploymentStatus);
 router.post('/:id/stop',      requireAuth, pollLimit, stopDeployment);
 router.post('/:id/start',     requireAuth, pollLimit, startDeployment);
 router.post('/:id/keepalive', requireAuth, pollLimit, keepAlive);
+router.post('/:id/redeploy',  requireAuth, deployLimit, redeployDeployment);
 router.delete('/:id',         requireAuth, pollLimit, deleteDeployment);
 
 export default router;

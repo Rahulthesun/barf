@@ -22,7 +22,7 @@ import {
 import { AppIcon } from "../components/AppIcon";
 import { Nav } from "../components/Nav";
 import { BarfyWidget } from "../components/BarfyWidget";
-import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
+import { DeleteConfirmModal, RedeployConfirmModal } from "../components/DeleteConfirmModal";
 import { createClient } from "@/utils/supabase/client";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -118,6 +118,7 @@ function DeploymentCard({
   onStop,
   onStart,
   onKeepAlive,
+  onRedeploy,
 }: {
   dep: Deployment;
   onRefresh: () => void;
@@ -125,8 +126,10 @@ function DeploymentCard({
   onStop: (id: string) => void;
   onStart: (id: string) => void;
   onKeepAlive: (id: string) => void;
+  onRedeploy: (id: string) => void;
 }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRedeployModal, setShowRedeployModal] = useState(false);
 
   const isTransient = dep.status === "deploying" || dep.status === "queued"
     || dep.status === "stopping" || dep.status === "starting" || dep.status === "deleting";
@@ -143,6 +146,13 @@ function DeploymentCard({
         appName={dep.app_slug}
         onConfirm={() => { setShowDeleteModal(false); onDelete(dep.id); }}
         onCancel={() => setShowDeleteModal(false)}
+      />
+    )}
+    {showRedeployModal && (
+      <RedeployConfirmModal
+        appName={dep.app_slug}
+        onConfirm={() => { setShowRedeployModal(false); onRedeploy(dep.id); }}
+        onCancel={() => setShowRedeployModal(false)}
       />
     )}
     <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
@@ -244,6 +254,13 @@ function DeploymentCard({
             >
               <Square className="w-3.5 h-3.5" />
             </button>
+            <button
+              onClick={() => setShowRedeployModal(true)}
+              className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors"
+              title="Redeploy"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+            </button>
           </>
         )}
 
@@ -255,6 +272,13 @@ function DeploymentCard({
               className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 transition-colors"
             >
               <Play className="w-3.5 h-3.5" /> Wake up
+            </button>
+            <button
+              onClick={() => setShowRedeployModal(true)}
+              className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors"
+              title="Redeploy"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setShowDeleteModal(true)}
@@ -269,12 +293,12 @@ function DeploymentCard({
         {/* Failed state */}
         {dep.status === "failed" && (
           <>
-            <Link
-              href={`/browse/${dep.app_slug}`}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-semibold px-3 py-2 transition-colors"
+            <button
+              onClick={() => setShowRedeployModal(true)}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-3 py-2 transition-colors"
             >
-              Retry <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+              <RefreshCw className="w-3.5 h-3.5" /> Redeploy
+            </button>
             <button
               onClick={() => setShowDeleteModal(true)}
               className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
@@ -367,6 +391,12 @@ export default function DashboardPage() {
     setDeployments(prev => prev.map(d => d.id === id ? { ...d, last_accessed_at: now } : d));
   }, []);
 
+  const redeployDeployment = useCallback(async (id: string) => {
+    const headers = await authHeaders();
+    const r = await fetch(`${API}/api/deploy/${id}/redeploy`, { method: "POST", headers });
+    if (r.ok) fetchDeployments();
+  }, [fetchDeployments]);
+
   useEffect(() => {
     const hasTransient = deployments.some(d =>
       d.status === "deploying" || d.status === "queued" ||
@@ -391,6 +421,7 @@ export default function DashboardPage() {
     onStop: stopDeployment,
     onStart: startDeployment,
     onKeepAlive: keepAlive,
+    onRedeploy: redeployDeployment,
   };
 
   return (

@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, ExternalLink, RefreshCw, Sparkles,
-  Send, Loader2, User, PanelRightClose, PanelRightOpen,
+  Send, Loader2, User, PanelRightClose, PanelRightOpen, RotateCcw,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { RedeployConfirmModal } from "@/app/components/DeleteConfirmModal";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -81,6 +82,8 @@ export default function AppEmbedPage() {
 
   // Iframe controls
   const [iframeKey, setIframeKey] = useState(0);
+  const [showRedeployModal, setShowRedeployModal] = useState(false);
+  const [redeploying, setRedeploying] = useState(false);
 
   // Barfy panel
   const [panelOpen, setPanelOpen] = useState(true);
@@ -222,6 +225,23 @@ export default function AppEmbedPage() {
     sendMessage(text);
   }
 
+  async function handleRedeploy() {
+    if (!dep) return;
+    setRedeploying(true);
+    const { data: { session } } = await createClient().auth.getSession();
+    if (!session) { router.push("/login"); return; }
+    const r = await fetch(`${API}/api/deploy/${dep.id}/redeploy`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${session.access_token}` },
+    });
+    if (r.ok) {
+      const newDep = await r.json();
+      router.push(`/apps/${newDep.id}`);
+    } else {
+      setRedeploying(false);
+    }
+  }
+
   // ── Loading / error states ─────────────────────────────────────────────────
   if (loading) {
     return (
@@ -248,6 +268,14 @@ export default function AppEmbedPage() {
   }
 
   return (
+    <>
+    {showRedeployModal && dep && (
+      <RedeployConfirmModal
+        appName={appName || dep.app_slug}
+        onConfirm={() => { setShowRedeployModal(false); handleRedeploy(); }}
+        onCancel={() => setShowRedeployModal(false)}
+      />
+    )}
     <div className="h-screen flex flex-col bg-zinc-950 overflow-hidden">
 
       {/* ── Toolbar ───────────────────────────────────────────────────────── */}
@@ -294,6 +322,14 @@ export default function AppEmbedPage() {
           >
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
+          <button
+            onClick={() => setShowRedeployModal(true)}
+            disabled={redeploying}
+            className="w-7 h-7 flex items-center justify-center rounded-md text-amber-400 hover:text-amber-300 hover:bg-zinc-800 transition-colors disabled:opacity-40"
+            title="Redeploy from scratch"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${redeploying ? "animate-spin" : ""}`} />
+          </button>
 
           <div className="w-px h-4 bg-zinc-800 mx-1" />
 
@@ -435,5 +471,6 @@ export default function AppEmbedPage() {
         )}
       </div>
     </div>
+    </>
   );
 }

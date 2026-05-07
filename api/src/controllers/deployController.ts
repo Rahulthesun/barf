@@ -244,6 +244,73 @@ export async function keepAlive(req: Request, res: Response): Promise<void> {
   res.json({ ok: true });
 }
 
+// ─── POST /api/deploy/:id/redeploy — tear down and re-create from scratch ────
+
+export async function redeployDeployment(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const userId = (req as any).user.id as string;
+  const supabase = getSupabase();
+
+  const { data: existing, error } = await supabase
+    .from('deployments')
+    .select('id, app_slug, app_id, azure_app_name, cf_dns_record_id')
+    .eq('id', id)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error || !existing) { res.status(404).json({ error: 'Deployment not found' }); return; }
+
+  const slug      = (existing as any).app_slug as string;
+  const azureName = (existing as any).azure_app_name as string | null;
+  const cfId      = (existing as any).cf_dns_record_id as string | null;
+
+  // Look up app config
+  const { data: app } = await supabase
+    .from('oss_apps')
+    .select('id, name, slug, docker_image, default_port, deploy_env, deploy_command, requires_postgres')
+    .eq('slug', slug)
+    .maybeSingle();
+  if (!app) { res.status(404).json({ error: 'App config not found' }); return; }
+
+  const curated     = getDeployConfig(slug);
+  const dockerImage = curated?.docker_image  ?? (app as any).docker_image  as string | null;
+  const port        = curated?.default_port  ?? (app as any).default_port  as number ?? 3000;
+  const requiresPg  = curated?.requires_postgres ?? (app as any).requires_postgres as boolean ?? false;
+  const deployEnv   = curated?.deploy_env    ?? (app as any).deploy_env    as Record<string, string> ?? {};
+  const deployCmd   = curated?.deploy_command ?? (app as any).deploy_command as string[] ?? undefined;
+  const resources   = curated?.resources;
+
+  if (!dockerImage) { res.status(400).json({ error: `No Docker image for ${slug}` }); return; }
+
+  // Tear down old container in background, then delete the old record
+  if (azureName) {
+    setImmediate(() => {
+      tearDownDeployment(azureName, cfId).catch(err =>
+        console.error('[redeploy] Tear down error:', err)
+      );
+    });
+  }
+  await supabase.from('deployments').delete().eq('id', id);
+
+  // Create new deployment record
+  const { data: newDep, error: newErr } = await supabase
+    .from('deployments')
+    .insert({ app_id: (app as any).id, app_slug: slug, status: 'queued', user_id: userId, updated_at: new Date().toISOString() })
+    .select('id, status, created_at')
+    .single();
+
+  if (newErr || !newDep) { res.status(500).json({ error: 'Failed to create replacement deployment' }); return; }
+
+  const newId = (newDep as any).id as string;
+
+  setImmediate(() => {
+    runDeployment({ deploymentId: newId, appSlug: slug, dockerImage, port, deployEnv, deployCommand: deployCmd, requiresPostgres: requiresPg, ...(resources ? { resources } : {}) })
+      .catch(err => console.error('[redeploy] Deploy error:', err));
+  });
+
+  res.status(202).json({ id: newId, status: 'queued', message: `Redeployment started for ${(app as any).name}` });
+}
+
 // ─── DELETE /api/deploy/:id — tear down a container ──────────────────────────
 
 export async function deleteDeployment(req: Request, res: Response): Promise<void> {
