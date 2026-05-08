@@ -245,15 +245,29 @@ export async function runDeployment(params: {
         ...(deployCommand ? { command: deployCommand } : {}),
       };
 
-      // ── Nginx sidecar — reverse proxy + strips X-Frame-Options / CSP so apps can be iframed ──
-      // proxy_cookie_flags ~. rewrites ALL upstream cookies to SameSite=None;Secure
-      // ~. is a regex matching any cookie name (any char). Fixes Chrome/Firefox cross-origin iframes.
-      // For Safari (ITP), the parent and iframe must share the same eTLD+1 (e.g. both *.barf.dev).
-      const nginxConf = `server{listen 80;client_max_body_size 50m;location /{proxy_pass http://localhost:${port};proxy_set_header Host $http_host;proxy_set_header X-Forwarded-Proto https;proxy_set_header X-Real-IP $remote_addr;proxy_hide_header X-Frame-Options;proxy_hide_header Content-Security-Policy;add_header Content-Security-Policy "frame-ancestors *" always;proxy_http_version 1.1;proxy_set_header Upgrade $http_upgrade;proxy_set_header Connection "upgrade";proxy_read_timeout 300s;proxy_cookie_flags ~. samesite=none secure;}}`;
+      // ── Nginx sidecar ─────────────────────────────────────────────────────────
+      // • Strips X-Frame-Options / CSP so the app can be embedded in an iframe
+      // • Rewrites cookies to SameSite=None;Secure (Chrome/Firefox cross-origin fix)
+      // • Injects barf-bridge.js into every HTML page via sub_filter so the parent
+      //   frame receives real-time URL/title updates via postMessage — this is how
+      //   Barfy knows which exact page the user is on inside the embedded app.
+
+      // The bridge script uses only double-quotes so it is safe inside single-quoted
+      // printf arguments. It watches history API + MutationObserver for SPA routing.
+      const bridgeScript = `(function(){function n(d){try{parent.postMessage(Object.assign({type:"barf"},d),"*")}catch(e){}}function c(){return{url:location.href,title:document.title}}n(c());var l=location.href;new MutationObserver(function(){if(location.href!==l){l=location.href;n(c())}}).observe(document,{subtree:true,childList:true});["pushState","replaceState"].forEach(function(m){var o=history[m];history[m]=function(){o.apply(this,arguments);n(c())}});window.addEventListener("unhandledrejection",function(e){n(Object.assign(c(),{error:e.reason&&e.reason.message||String(e.reason)}))})})();`;
+
+      const nginxConf = `server{listen 80;client_max_body_size 50m;`
+        + `location /barf-bridge.js{root /usr/share/nginx/html;default_type application/javascript;add_header Cache-Control "public, max-age=300";}`
+        + `location /{proxy_pass http://localhost:${port};proxy_set_header Host $http_host;proxy_set_header X-Forwarded-Proto https;proxy_set_header X-Real-IP $remote_addr;proxy_set_header Accept-Encoding "";proxy_hide_header X-Frame-Options;proxy_hide_header Content-Security-Policy;add_header Content-Security-Policy "frame-ancestors *" always;proxy_http_version 1.1;proxy_set_header Upgrade $http_upgrade;proxy_set_header Connection "upgrade";proxy_read_timeout 300s;proxy_cookie_flags ~. samesite=none secure;sub_filter_once on;sub_filter_types text/html;sub_filter "</head>" "<script src=/barf-bridge.js></script></head>";}}`;
+
       const proxyContainer = {
         name:    'proxy',
         image:   'nginx:alpine',
-        command: ['sh', '-c', `printf '%s' '${nginxConf}' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'`],
+        command: ['sh', '-c',
+          `printf '%s' '${nginxConf}' > /etc/nginx/conf.d/default.conf`
+          + ` && printf '%s' '${bridgeScript}' > /usr/share/nginx/html/barf-bridge.js`
+          + ` && nginx -g 'daemon off;'`,
+        ],
         ports:   [{ port: 80 }],
         resources: { requests: { cpu: 0.1, memoryInGB: 0.2 } },
       };

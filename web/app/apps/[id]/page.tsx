@@ -60,15 +60,44 @@ function MarkdownText({ text, isUser }: { text: string; isUser: boolean }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Page
+// Context helpers — map iframe URL path → human-readable state + quick prompts
 // ─────────────────────────────────────────────────────────────────────────────
 
-const QUICK_PROMPTS = [
-  "What do I do first?",
-  "What are the default credentials?",
-  "Walk me through the setup",
-  "How do I invite team members?",
-];
+function describeIframePath(appSlug: string, path: string): string {
+  if (appSlug === "n8n") {
+    if (path === "/" || path === "")               return "n8n home — probably the setup wizard or workflow list";
+    if (path.startsWith("/setup"))                 return "first-time owner setup page — user needs to create their account before anything else";
+    if (path.startsWith("/home"))                  return "workflow dashboard — showing list of all workflows";
+    if (path.includes("/workflow/new"))            return "new workflow editor — blank canvas, user is building a workflow from scratch";
+    if (/\/workflow\/[^/]+/.test(path))            return "workflow editor — user is editing an existing workflow";
+    if (path.startsWith("/workflows"))             return "workflows list page";
+    if (path.startsWith("/credentials"))           return "credentials manager — user is adding or managing API keys/connections";
+    if (path.startsWith("/executions"))            return "execution history — user is reviewing past workflow runs / debugging";
+    if (path.startsWith("/settings/users"))        return "user management — user wants to invite team members or manage roles";
+    if (path.startsWith("/settings/api"))          return "API keys settings";
+    if (path.startsWith("/settings"))              return "settings page";
+    if (path.startsWith("/templates"))             return "templates library — user is browsing pre-built workflows";
+  }
+  return `current path: ${path}`;
+}
+
+function getQuickPrompts(appSlug: string, path?: string): string[] {
+  if (appSlug === "n8n") {
+    if (path?.startsWith("/setup"))
+      return ["How do I fill this in?", "What password rules?", "What happens after setup?"];
+    if (path?.startsWith("/home") || path === "/" || !path)
+      return ["Create my first workflow", "What can I automate?", "How do webhooks work?", "Invite a team member"];
+    if (path?.includes("/workflow"))
+      return ["Add a trigger", "Connect to another app", "How do I test this?", "Schedule this workflow"];
+    if (path?.startsWith("/credentials"))
+      return ["Add a Google account", "Where do I find my API key?", "Connect Slack"];
+    if (path?.startsWith("/executions"))
+      return ["Why did this run fail?", "How do I retry a failed run?", "Read the error log"];
+    if (path?.startsWith("/settings/users"))
+      return ["Invite someone", "What can members do?", "Remove a user"];
+  }
+  return ["What do I do first?", "Walk me through the setup", "What are the default credentials?"];
+}
 
 export default function AppEmbedPage() {
   const { id } = useParams<{ id: string }>();
@@ -94,6 +123,11 @@ export default function AppEmbedPage() {
   const [hasStarted, setHasStarted] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Live iframe context — updated via postMessage bridge injected by nginx
+  const [iframePath, setIframePath] = useState<string | undefined>(undefined);
+  const [iframeTitle, setIframeTitle] = useState<string | undefined>(undefined);
+  const iframePathRef = useRef<string | undefined>(undefined);
 
   // ── Load deployment ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -122,6 +156,22 @@ export default function AppEmbedPage() {
     }
     load();
   }, [id, router]);
+
+  // ── Bridge: receive page context from the injected script in the iframe ────
+  useEffect(() => {
+    function handler(e: MessageEvent) {
+      if (e.data?.type !== "barf" || !e.data.url) return;
+      try {
+        const path = new URL(e.data.url).pathname;
+        iframePathRef.current = path;
+        setIframePath(path);
+        setIframeTitle(e.data.title ?? undefined);
+        setIframeLoaded(true); // navigation inside the app = definitely loaded
+      } catch { /* ignore malformed URLs */ }
+    }
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
 
   // ── Reset iframe loaded state on refresh ──────────────────────────────────
   useEffect(() => { setIframeLoaded(false); }, [iframeKey]);
@@ -169,14 +219,18 @@ export default function AppEmbedPage() {
       setChatLoading(true);
 
       try {
+        const currentPath = iframePathRef.current;
         const pageContext = [
           `App: ${appName || dep.app_slug}`,
           `Live URL: ${dep.live_url}`,
           `Status: ${dep.status}`,
-          iframeLoaded
-            ? `The user is actively using ${appName || dep.app_slug} in the embedded view.`
-            : `The app is still loading — the user may be seeing the setup wizard or a loading screen.`,
-        ].join('\n');
+          currentPath
+            ? `User is currently on: ${describeIframePath(dep.app_slug, currentPath)} (path: ${currentPath})`
+            : iframeLoaded
+              ? `The user is actively using ${appName || dep.app_slug} in the embedded view.`
+              : `The app is still loading — the user may be seeing the setup wizard or loading screen.`,
+          iframeTitle ? `Page title: "${iframeTitle}"` : "",
+        ].filter(Boolean).join("\n");
 
         const res = await fetch(`${API}/api/ai/onboard`, {
           method: "POST",
@@ -409,9 +463,13 @@ export default function AppEmbedPage() {
               <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center shadow-sm shadow-violet-500/30">
                 <Sparkles className="w-3.5 h-3.5 text-white" />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-bold text-zinc-100">Barfy</p>
-                <p className="text-[10px] text-zinc-500">AI guide for {appName}</p>
+                <p className="text-[10px] text-zinc-500 truncate">
+                  {iframePath
+                    ? describeIframePath(dep.app_slug, iframePath).split("—")[0].trim()
+                    : `AI guide for ${appName}`}
+                </p>
               </div>
               <div className="ml-auto flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -461,10 +519,10 @@ export default function AppEmbedPage() {
               <div ref={bottomRef} />
             </div>
 
-            {/* Quick prompts — visible until conversation is going */}
+            {/* Quick prompts — context-aware based on current iframe page */}
             {messages.length <= 2 && !chatLoading && (
               <div className="px-3 pb-2 flex flex-wrap gap-1.5">
-                {QUICK_PROMPTS.map((p) => (
+                {getQuickPrompts(dep.app_slug, iframePath).map((p) => (
                   <button
                     key={p}
                     onClick={() => sendMessage(p)}
