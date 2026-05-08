@@ -15,7 +15,20 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+// ─── CORS ─────────────────────────────────────────────────────────────────────
+// ALLOWED_ORIGINS env var: comma-separated list for production.
+// Falls back to localhost for local dev when not set.
+const rawOrigins = process.env.ALLOWED_ORIGINS ?? 'http://localhost:3000,http://localhost:3001';
+const allowedOrigins = new Set(rawOrigins.split(',').map(o => o.trim()).filter(Boolean));
+
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow server-to-server requests (no Origin header) and listed origins
+    if (!origin || allowedOrigins.has(origin)) return cb(null, true);
+    cb(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 app.use('/api/extract',  extractRoutes);

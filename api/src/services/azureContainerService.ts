@@ -131,19 +131,25 @@ async function waitForHttpReady(
   hostname: string,
   timeoutMs = 8 * 60 * 1000,  // 8 min — enough for postgres migrations
   intervalMs = 12_000,
+  healthPath = '/',
 ): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
-  console.log(`[deploy] Waiting for ${hostname} to become ready…`);
+  const url = `http://${hostname}${healthPath}`;
+  console.log(`[deploy] Waiting for ${url} to become ready…`);
 
   while (Date.now() < deadline) {
     try {
-      const res = await fetch(`http://${hostname}`, {
+      const res = await fetch(url, {
         signal: AbortSignal.timeout(6_000),
         redirect: 'follow',
       });
-      // Any real response (even 4xx) means the app is up — 502 means Caddy can't reach it yet
-      if (res.status !== 502 && res.status !== 503) {
-        console.log(`[deploy] ${hostname} ready (HTTP ${res.status})`);
+      // For a dedicated health endpoint (e.g. /healthz) we require 200.
+      // For the root path we accept any response except 502/503/504 (nginx can't reach upstream yet).
+      const ready = healthPath === '/'
+        ? res.status !== 502 && res.status !== 503 && res.status !== 504
+        : res.status === 200;
+      if (ready) {
+        console.log(`[deploy] ${url} ready (HTTP ${res.status})`);
         return true;
       }
     } catch {
@@ -152,7 +158,7 @@ async function waitForHttpReady(
     await new Promise(r => setTimeout(r, intervalMs));
   }
 
-  console.error(`[deploy] ${hostname} did not become ready within timeout`);
+  console.error(`[deploy] ${url} did not become ready within timeout`);
   return false;
 }
 
@@ -167,12 +173,14 @@ export async function runDeployment(params: {
   deployCommand?:  string[];
   requiresPostgres?: boolean;
   resources?:      { cpu: number; memoryInGB: number };
+  healthCheckPath?: string;
 }): Promise<void> {
   const {
     deploymentId, appSlug, port,
     requiresPostgres = false,
     deployCommand,
     resources = { cpu: 1, memoryInGB: 1.5 },
+    healthCheckPath = '/',
   } = params;
 
   const dockerImage   = normaliseImage(params.dockerImage);
@@ -238,9 +246,10 @@ export async function runDeployment(params: {
       };
 
       // ── Nginx sidecar — reverse proxy + strips X-Frame-Options / CSP so apps can be iframed ──
-      // proxy_cookie_flags * rewrites ALL upstream cookies to SameSite=None;Secure
-      // so they persist inside a cross-origin iframe (requires nginx >= 1.19.8, included in nginx:alpine)
-      const nginxConf = `server{listen 80;client_max_body_size 50m;location /{proxy_pass http://localhost:${port};proxy_set_header Host $http_host;proxy_set_header X-Forwarded-Proto https;proxy_set_header X-Real-IP $remote_addr;proxy_hide_header X-Frame-Options;proxy_hide_header Content-Security-Policy;add_header Content-Security-Policy "frame-ancestors *" always;proxy_http_version 1.1;proxy_set_header Upgrade $http_upgrade;proxy_set_header Connection "upgrade";proxy_read_timeout 300s;proxy_cookie_flags * samesite=none secure;}}`;
+      // proxy_cookie_flags ~. rewrites ALL upstream cookies to SameSite=None;Secure
+      // ~. is a regex matching any cookie name (any char). Fixes Chrome/Firefox cross-origin iframes.
+      // For Safari (ITP), the parent and iframe must share the same eTLD+1 (e.g. both *.barf.dev).
+      const nginxConf = `server{listen 80;client_max_body_size 50m;location /{proxy_pass http://localhost:${port};proxy_set_header Host $http_host;proxy_set_header X-Forwarded-Proto https;proxy_set_header X-Real-IP $remote_addr;proxy_hide_header X-Frame-Options;proxy_hide_header Content-Security-Policy;add_header Content-Security-Policy "frame-ancestors *" always;proxy_http_version 1.1;proxy_set_header Upgrade $http_upgrade;proxy_set_header Connection "upgrade";proxy_read_timeout 300s;proxy_cookie_flags ~. samesite=none secure;}}`;
       const proxyContainer = {
         name:    'proxy',
         image:   'nginx:alpine',
@@ -294,7 +303,7 @@ export async function runDeployment(params: {
 
       // ── Wait for app to actually serve traffic ────────────────────────────
       await updateDeployment(deploymentId, { status: 'deploying' });
-      const ready = await waitForHttpReady(aciHostname);
+      const ready = await waitForHttpReady(aciHostname, 8 * 60 * 1000, 12_000, healthCheckPath);
 
       if (!ready) {
         await updateDeployment(deploymentId, { status: 'failed' });

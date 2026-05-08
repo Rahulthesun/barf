@@ -12,6 +12,9 @@ export interface DeployConfig {
   deployable_note?:   string;
   // Override default container resources (cpu: 1, memoryInGB: 1.5)
   resources?: { cpu: number; memoryInGB: number };
+  // Path to poll for readiness — defaults to "/". Use a dedicated health endpoint
+  // when the app returns 404 on "/" during startup (e.g. n8n before routes load).
+  health_check_path?: string;
 }
 
 export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
@@ -19,9 +22,10 @@ export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
   // ── Automation ───────────────────────────────────────────────────────────────
 
   'n8n': {
-    docker_image:      'n8nio/n8n:latest',
-    default_port:      5678,
-    requires_postgres: false,
+    docker_image:       'n8nio/n8n:latest',
+    default_port:       5678,
+    requires_postgres:  false,
+    health_check_path:  '/healthz',
     deploy_env: {
       N8N_SECURE_COOKIE:      'false',
       N8N_ENCRYPTION_KEY:     '{{SECRET_KEY}}',

@@ -71,12 +71,13 @@ export async function createDeployment(req: Request, res: Response): Promise<voi
     return;
   }
 
-  const dockerImage  = curated?.docker_image  ?? (app as any).docker_image  as string | null;
-  const port         = curated?.default_port  ?? (app as any).default_port  as number ?? 3000;
-  const requiresPg   = curated?.requires_postgres ?? (app as any).requires_postgres as boolean ?? false;
-  const deployEnv    = curated?.deploy_env    ?? (app as any).deploy_env    as Record<string, string> ?? {};
-  const deployCmd    = curated?.deploy_command ?? (app as any).deploy_command as string[] ?? undefined;
-  const resources    = curated?.resources;
+  const dockerImage       = curated?.docker_image      ?? (app as any).docker_image  as string | null;
+  const port              = curated?.default_port      ?? (app as any).default_port  as number ?? 3000;
+  const requiresPg        = curated?.requires_postgres ?? (app as any).requires_postgres as boolean ?? false;
+  const deployEnv         = curated?.deploy_env        ?? (app as any).deploy_env    as Record<string, string> ?? {};
+  const deployCmd         = curated?.deploy_command    ?? (app as any).deploy_command as string[] ?? undefined;
+  const resources         = curated?.resources;
+  const healthCheckPath   = curated?.health_check_path;
 
   if (!dockerImage) {
     res.status(400).json({ error: `No Docker image configured for ${slug} yet.` });
@@ -133,7 +134,8 @@ export async function createDeployment(req: Request, res: Response): Promise<voi
       deployEnv,
       deployCommand:    deployCmd,
       requiresPostgres: requiresPg,
-      ...(resources ? { resources } : {}),
+      ...(resources        ? { resources }        : {}),
+      ...(healthCheckPath  ? { healthCheckPath }   : {}),
     }).catch(err => console.error('[deploy] Unhandled error:', err));
   });
 
@@ -272,13 +274,14 @@ export async function redeployDeployment(req: Request, res: Response): Promise<v
     .maybeSingle();
   if (!app) { res.status(404).json({ error: 'App config not found' }); return; }
 
-  const curated     = getDeployConfig(slug);
-  const dockerImage = curated?.docker_image  ?? (app as any).docker_image  as string | null;
-  const port        = curated?.default_port  ?? (app as any).default_port  as number ?? 3000;
-  const requiresPg  = curated?.requires_postgres ?? (app as any).requires_postgres as boolean ?? false;
-  const deployEnv   = curated?.deploy_env    ?? (app as any).deploy_env    as Record<string, string> ?? {};
-  const deployCmd   = curated?.deploy_command ?? (app as any).deploy_command as string[] ?? undefined;
-  const resources   = curated?.resources;
+  const curated          = getDeployConfig(slug);
+  const dockerImage      = curated?.docker_image      ?? (app as any).docker_image  as string | null;
+  const port             = curated?.default_port      ?? (app as any).default_port  as number ?? 3000;
+  const requiresPg       = curated?.requires_postgres ?? (app as any).requires_postgres as boolean ?? false;
+  const deployEnv        = curated?.deploy_env        ?? (app as any).deploy_env    as Record<string, string> ?? {};
+  const deployCmd        = curated?.deploy_command    ?? (app as any).deploy_command as string[] ?? undefined;
+  const resources        = curated?.resources;
+  const healthCheckPath  = curated?.health_check_path;
 
   if (!dockerImage) { res.status(400).json({ error: `No Docker image for ${slug}` }); return; }
 
@@ -304,7 +307,7 @@ export async function redeployDeployment(req: Request, res: Response): Promise<v
   const newId = (newDep as any).id as string;
 
   setImmediate(() => {
-    runDeployment({ deploymentId: newId, appSlug: slug, dockerImage, port, deployEnv, deployCommand: deployCmd, requiresPostgres: requiresPg, ...(resources ? { resources } : {}) })
+    runDeployment({ deploymentId: newId, appSlug: slug, dockerImage, port, deployEnv, deployCommand: deployCmd, requiresPostgres: requiresPg, ...(resources ? { resources } : {}), ...(healthCheckPath ? { healthCheckPath } : {}) })
       .catch(err => console.error('[redeploy] Deploy error:', err));
   });
 
