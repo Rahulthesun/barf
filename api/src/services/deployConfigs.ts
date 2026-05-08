@@ -15,6 +15,8 @@ export interface DeployConfig {
   // Path to poll for readiness — defaults to "/". Use a dedicated health endpoint
   // when the app returns 404 on "/" during startup (e.g. n8n before routes load).
   health_check_path?: string;
+  // Official docs/guide URLs to scrape for Barfy context (in priority order).
+  docs_urls?: string[];
 }
 
 export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
@@ -26,6 +28,12 @@ export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
     default_port:       5678,
     requires_postgres:  false,
     health_check_path:  '/healthz',
+    docs_urls: [
+      'https://docs.n8n.io/getting-started/quickstart/',
+      'https://docs.n8n.io/workflows/create/',
+      'https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/',
+      'https://docs.n8n.io/hosting/configuration/environment-variables/',
+    ],
     deploy_env: {
       N8N_SECURE_COOKIE:      'false',
       N8N_ENCRYPTION_KEY:     '{{SECRET_KEY}}',
@@ -40,6 +48,11 @@ export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
     docker_image:      'activepieces/activepieces:latest',
     default_port:      8000,
     requires_postgres: true,
+    docs_urls: [
+      'https://www.activepieces.com/docs/getting-started/introduction',
+      'https://www.activepieces.com/docs/flows/overview',
+      'https://www.activepieces.com/docs/pieces/overview',
+    ],
     deploy_env: {
       AP_QUEUE_MODE:       'memory', // eliminates Redis dependency
       AP_DB_TYPE:          'postgres',
@@ -61,6 +74,12 @@ export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
     docker_image:      'ghcr.io/umami-software/umami:postgresql-latest',
     default_port:      3000,
     requires_postgres: true,
+    docs_urls: [
+      'https://umami.is/docs/getting-started',
+      'https://umami.is/docs/add-a-website',
+      'https://umami.is/docs/track-events',
+      'https://umami.is/docs/reports',
+    ],
     deploy_env: {
       DATABASE_URL: 'postgresql://barf:{{POSTGRES_PASSWORD}}@localhost:5432/{{POSTGRES_DB}}',
       APP_SECRET:   '{{SECRET_KEY}}',
@@ -94,6 +113,12 @@ export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
     docker_image:      'twentyhq/twenty:latest',
     default_port:      3000,
     requires_postgres: true,
+    docs_urls: [
+      'https://twenty.com/developers/section/self-hosting/self-hosting-var',
+      'https://twenty.com/developers/section/user-guide/objects',
+      'https://twenty.com/developers/section/user-guide/views-filters-and-sorts',
+      'https://twenty.com/developers/section/user-guide/fields',
+    ],
     deploy_env: {
       DATABASE_URL:         'postgresql://barf:{{POSTGRES_PASSWORD}}@localhost:5432/{{POSTGRES_DB}}',
       SERVER_URL:           '{{APP_URL}}',
@@ -111,6 +136,10 @@ export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
     docker_image:      'cortezaproject/corteza:latest',
     default_port:      18080,
     requires_postgres: true,
+    docs_urls: [
+      'https://docs.cortezaproject.org/corteza-docs/2024.9/devops-guide/index.html',
+      'https://docs.cortezaproject.org/corteza-docs/2024.9/end-user-guide/index.html',
+    ],
     deploy_env: {
       DATABASE_DSN:    'postgres://barf:{{POSTGRES_PASSWORD}}@localhost:5432/{{POSTGRES_DB}}?sslmode=disable',
       AUTH_JWT_SECRET: '{{SECRET_KEY}}',
@@ -125,6 +154,12 @@ export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
     docker_image:      'gitea/gitea:latest',
     default_port:      3000,
     requires_postgres: false,
+    docs_urls: [
+      'https://docs.gitea.com/installation/install-from-docker',
+      'https://docs.gitea.com/usage/git-repositories',
+      'https://docs.gitea.com/usage/actions/overview',
+      'https://docs.gitea.com/usage/packages/overview',
+    ],
     deploy_env: {
       GITEA__server__ROOT_URL:   '{{APP_URL}}',
       GITEA__server__HTTP_PORT:  '3000',
@@ -139,6 +174,11 @@ export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
     docker_image:      'listmonk/listmonk:latest',
     default_port:      9000,
     requires_postgres: true,
+    docs_urls: [
+      'https://listmonk.app/docs/installation/',
+      'https://listmonk.app/docs/concepts/',
+      'https://listmonk.app/docs/templating/',
+    ],
     deploy_env: {
       LISTMONK_db__host:     'localhost',
       LISTMONK_db__port:     '5432',
@@ -195,6 +235,10 @@ export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
     docker_image:      'quay.io/keycloak/keycloak:latest',
     default_port:      8080,
     requires_postgres: false,
+    docs_urls: [
+      'https://www.keycloak.org/docs/latest/server_admin/index.html',
+      'https://www.keycloak.org/docs/latest/getting_started/index.html',
+    ],
     deploy_env: {
       KEYCLOAK_ADMIN:          'admin',
       KEYCLOAK_ADMIN_PASSWORD: '{{SECRET_KEY_SHORT}}',
@@ -229,6 +273,11 @@ export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
     docker_image:      'nextcloud:apache',
     default_port:      8080,
     requires_postgres: true,
+    docs_urls: [
+      'https://docs.nextcloud.com/server/latest/user_manual/en/files/access_webgui.html',
+      'https://docs.nextcloud.com/server/latest/user_manual/en/groupware/index.html',
+      'https://docs.nextcloud.com/server/latest/user_manual/en/talk/index.html',
+    ],
     deploy_env: {
       POSTGRES_HOST:             'localhost',
       POSTGRES_PORT:             '5432',
@@ -249,6 +298,11 @@ export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
     docker_image:      'vaultwarden/server:latest',
     default_port:      8080,
     requires_postgres: false,
+    docs_urls: [
+      'https://github.com/dani-garcia/vaultwarden/wiki/Starting-a-Container',
+      'https://github.com/dani-garcia/vaultwarden/wiki/Using-the-Admin-Panel',
+      'https://github.com/dani-garcia/vaultwarden/wiki/SMTP-Configuration',
+    ],
     deploy_env: {
       ROCKET_PORT:     '8080',
       SIGNUPS_ALLOWED: 'true',

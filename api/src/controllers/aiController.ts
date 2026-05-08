@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { OpenAI } from 'openai';
 import { getOnboardingGuide } from '../services/onboardingGuides';
+import { getDeployConfig } from '../services/deployConfigs';
+import { getOrTriggerDocs } from '../services/docsService';
 
 // ─── GPT-4.1-mini client (Barfy) ─────────────────────────────────────────────
 function getBarfyClient() {
@@ -36,6 +38,7 @@ function buildBarfyPrompt(
   appSlug: string,
   liveUrl: string,
   pageContext?: string,
+  officialDocs?: string | null,
 ): string {
   const guide = getOnboardingGuide(appSlug);
 
@@ -66,6 +69,12 @@ CURRENT PAGE STATE (what the user is looking at right now):
 ${pageContext}
 ` : '';
 
+  // ── Official docs (scraped + cached) ──────────────────────────────────────
+  const docsBlock = officialDocs ? `
+OFFICIAL DOCUMENTATION (excerpts from ${guide?.appName ?? appSlug} docs):
+${officialDocs}
+` : '';
+
   return `You are Barfy, the AI assistant built into barf.dev — embedded directly alongside the user's running app.
 
 WHAT BARF.DEV IS:
@@ -84,7 +93,8 @@ RESPONSE RULES:
 - Use numbered steps for setup tasks, bullets for tips
 - If the user is confused about something on screen, guide them based on your knowledge of ${guide?.appName ?? appSlug}'s UI
 - Never say "I don't have access to your screen" — use your knowledge of the app to help
-- Only reference barf.dev concepts (auto-stop, sleeping, etc.) when relevant`;
+- Only reference barf.dev concepts (auto-stop, sleeping, etc.) when relevant
+${docsBlock}`;
 }
 
 function buildSitePrompt(pageContext: string): string {
@@ -131,11 +141,19 @@ export async function onboardChat(req: Request, res: Response): Promise<void> {
 
   const effectiveLiveUrl = live_url || `https://${app_slug}.barf.app`;
 
+  // Fetch docs for embed-page requests (fire-and-forget on miss, returns null on first call)
+  let officialDocs: string | null = null;
+  if (live_url) {
+    const config = getDeployConfig(app_slug);
+    const docsUrls = config?.docs_urls ?? [];
+    officialDocs = await getOrTriggerDocs(app_slug, docsUrls);
+  }
+
   // Pick the right prompt:
-  // • On the embed page (app-specific): use buildBarfyPrompt with guide + context
+  // • On the embed page (app-specific): use buildBarfyPrompt with guide + docs + context
   // • On the site widget (no live_url, has context): use buildSitePrompt
   const systemPrompt = live_url
-    ? buildBarfyPrompt(app_slug, effectiveLiveUrl, context)
+    ? buildBarfyPrompt(app_slug, effectiveLiveUrl, context, officialDocs)
     : context
       ? buildSitePrompt(context)
       : buildBarfyPrompt(app_slug, effectiveLiveUrl);
