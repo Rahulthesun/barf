@@ -82,6 +82,7 @@ export default function AppEmbedPage() {
 
   // Iframe controls
   const [iframeKey, setIframeKey] = useState(0);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
   const [showRedeployModal, setShowRedeployModal] = useState(false);
   const [redeploying, setRedeploying] = useState(false);
 
@@ -122,6 +123,16 @@ export default function AppEmbedPage() {
     load();
   }, [id, router]);
 
+  // ── Reset iframe loaded state on refresh ──────────────────────────────────
+  useEffect(() => { setIframeLoaded(false); }, [iframeKey]);
+
+  // ── Auto-retry iframe after 20s if still not loaded (app warming up) ──────
+  useEffect(() => {
+    if (iframeLoaded) return;
+    const t = setTimeout(() => setIframeKey(k => k + 1), 20_000);
+    return () => clearTimeout(t);
+  }, [iframeKey, iframeLoaded]);
+
   // ── Auto-scroll ────────────────────────────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -158,12 +169,22 @@ export default function AppEmbedPage() {
       setChatLoading(true);
 
       try {
+        const pageContext = [
+          `App: ${appName || dep.app_slug}`,
+          `Live URL: ${dep.live_url}`,
+          `Status: ${dep.status}`,
+          iframeLoaded
+            ? `The user is actively using ${appName || dep.app_slug} in the embedded view.`
+            : `The app is still loading — the user may be seeing the setup wizard or a loading screen.`,
+        ].join('\n');
+
         const res = await fetch(`${API}/api/ai/onboard`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             app_slug: dep.app_slug,
             live_url: dep.live_url,
+            context: pageContext,
             messages: apiMessages,
           }),
         });
@@ -356,14 +377,27 @@ export default function AppEmbedPage() {
       <div className="flex-1 flex overflow-hidden">
 
         {/* Iframe */}
-        <div className="flex-1 relative bg-white">
+        <div className="flex-1 relative bg-zinc-950">
           <iframe
             key={iframeKey}
             src={dep.live_url}
             className="absolute inset-0 w-full h-full border-0"
             title={appName}
             allow="fullscreen"
+            onLoad={() => setIframeLoaded(true)}
           />
+          {/* Loading overlay — shown until iframe fires onLoad */}
+          {!iframeLoaded && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-950 z-10">
+              <div className="w-10 h-10 rounded-xl bg-violet-600/20 flex items-center justify-center">
+                <Loader2 className="w-5 h-5 text-violet-400 animate-spin" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-zinc-300">{appName} is warming up…</p>
+                <p className="text-xs text-zinc-600 mt-1">Usually ready in under 30 seconds</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Barfy panel ─────────────────────────────────────────────────── */}
