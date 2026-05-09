@@ -89,7 +89,7 @@ function AppCard({ app }: { app: OssApp }) {
           {app.license && <><span>·</span><span>{app.license}</span></>}
           {app.language && <><span>·</span><span>{app.language}</span></>}
         </div>
-        <ArrowUpRight className="w-4 h-4 text-zinc-300 dark:text-zinc-600 group-hover:text-violet-500 dark:group-hover:text-violet-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+        <ArrowUpRight className="w-4 h-4 text-zinc-300 dark:text-zinc-600 group-hover:text-[var(--primary)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
       </div>
     </Link>
   );
@@ -185,7 +185,7 @@ function BrowseContent() {
                 placeholder="Search apps, or what they replace…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 shadow-sm pl-11 pr-5 py-3 text-[14px] placeholder:text-zinc-400 dark:placeholder:text-zinc-500 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-400 dark:focus:border-violet-500 transition-all"
+                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 shadow-sm pl-11 pr-5 py-3 text-[14px] placeholder:text-zinc-400 dark:placeholder:text-zinc-500 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 focus:border-[var(--primary)] transition-all"
               />
               {loading && debouncedSearch && (
                 <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 animate-spin" />
@@ -233,7 +233,7 @@ function BrowseContent() {
               </p>
               <button
                 onClick={() => { setSearch(""); setCategory("All"); }}
-                className="text-sm font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
+                className="text-sm font-semibold text-[var(--primary)] hover:opacity-80 transition-opacity"
               >
                 Clear filters →
               </button>
@@ -244,7 +244,7 @@ function BrowseContent() {
               {featured.length > 0 && !debouncedSearch && (
                 <div>
                   <div className="flex items-center gap-2 mb-4">
-                    <span className="text-[10px] font-bold font-mono uppercase tracking-[0.15em] text-violet-600 dark:text-violet-400">Featured</span>
+                    <span className="text-[10px] font-bold font-mono uppercase tracking-[0.15em] text-[var(--primary)]">Featured</span>
                     <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">

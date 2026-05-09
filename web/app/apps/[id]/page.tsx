@@ -46,7 +46,7 @@ function MarkdownText({ text, isUser }: { text: string; isUser: boolean }) {
               key={i}
               className={`rounded px-1 py-0.5 text-[11px] font-mono ${
                 isUser
-                  ? "bg-violet-700/40 text-violet-100"
+                  ? "bg-black/20 text-white/90"
                   : "bg-zinc-700/60 text-zinc-200"
               }`}
             >
@@ -321,7 +321,7 @@ export default function AppEmbedPage() {
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-zinc-950">
-        <Loader2 className="w-5 h-5 text-violet-400 animate-spin" />
+        <Loader2 className="w-5 h-5 text-[var(--primary)] animate-spin" />
       </div>
     );
   }
@@ -335,7 +335,7 @@ export default function AppEmbedPage() {
             ? "This app is sleeping. Start it from the dashboard first."
             : "Deployment not found or not yet live."}
         </p>
-        <Link href="/dashboard" className="text-violet-400 hover:text-violet-300 text-sm underline underline-offset-2">
+        <Link href="/dashboard" className="text-[var(--primary)] hover:opacity-80 text-sm underline underline-offset-2">
           Back to dashboard
         </Link>
       </div>
@@ -413,9 +413,10 @@ export default function AppEmbedPage() {
             onClick={() => setPanelOpen(o => !o)}
             className={`flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[12px] font-semibold transition-all ${
               panelOpen
-                ? "bg-violet-600 text-white hover:bg-violet-500"
+                ? "text-white hover:opacity-90"
                 : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 border border-zinc-700"
             }`}
+            style={panelOpen ? { background: "var(--primary)" } : undefined}
           >
             <Sparkles className="w-3 h-3" />
             Barfy
@@ -443,8 +444,8 @@ export default function AppEmbedPage() {
           {/* Loading overlay — shown until iframe fires onLoad */}
           {!iframeLoaded && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-950 z-10">
-              <div className="w-10 h-10 rounded-xl bg-violet-600/20 flex items-center justify-center">
-                <Loader2 className="w-5 h-5 text-violet-400 animate-spin" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--primary)]/20 flex items-center justify-center">
+                <Loader2 className="w-5 h-5 text-[var(--primary)] animate-spin" />
               </div>
               <div className="text-center">
                 <p className="text-sm font-semibold text-zinc-300">{appName} is warming up…</p>
@@ -460,7 +461,7 @@ export default function AppEmbedPage() {
 
             {/* Panel header */}
             <div className="flex items-center gap-2.5 px-4 py-3 border-b border-zinc-800 shrink-0">
-              <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center shadow-sm shadow-violet-500/30">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shadow-sm shadow-[var(--primary)]/30" style={{ background: "var(--primary)" }}>
                 <Sparkles className="w-3.5 h-3.5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
@@ -481,7 +482,7 @@ export default function AppEmbedPage() {
             <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3 no-scrollbar">
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
-                  <Sparkles className="w-5 h-5 text-violet-500 animate-pulse" />
+                  <Sparkles className="w-5 h-5 text-[var(--primary)] animate-pulse" />
                   <p className="text-[13px] text-zinc-500">Starting up…</p>
                 </div>
               )}
@@ -491,16 +492,16 @@ export default function AppEmbedPage() {
                 return (
                   <div key={i} className={`flex gap-2 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
                     <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${
-                      isUser ? "bg-violet-600" : "bg-violet-900/50"
+                      isUser ? "bg-[var(--primary)]" : "bg-[var(--primary)]/15"
                     }`}>
                       {isUser
                         ? <User className="w-2.5 h-2.5 text-white" />
-                        : <Sparkles className="w-2.5 h-2.5 text-violet-400" />
+                        : <Sparkles className="w-2.5 h-2.5 text-[var(--primary)]" />
                       }
                     </div>
                     <div className={`max-w-[85%] rounded-xl px-3 py-2 text-[13px] leading-relaxed ${
                       isUser
-                        ? "bg-violet-600 text-white rounded-tr-sm"
+                        ? "bg-[var(--primary)] text-white rounded-tr-sm"
                         : "bg-zinc-800 text-zinc-200 rounded-tl-sm border border-zinc-700/50"
                     }`}>
                       {msg.content ? (
@@ -526,7 +527,7 @@ export default function AppEmbedPage() {
                   <button
                     key={p}
                     onClick={() => sendMessage(p)}
-                    className="text-[11px] rounded-full border border-violet-700/50 bg-violet-950/40 text-violet-400 px-2.5 py-1 hover:bg-violet-950/80 hover:border-violet-500 transition-colors"
+                    className="text-[11px] rounded-full border border-[var(--primary)]/30 bg-[var(--primary)]/5 text-[var(--primary)] px-2.5 py-1 hover:bg-[var(--primary)]/10 hover:border-[var(--primary)]/50 transition-colors"
                   >
                     {p}
                   </button>
@@ -546,12 +547,13 @@ export default function AppEmbedPage() {
                 onChange={e => setInput(e.target.value)}
                 placeholder={`Ask anything about ${appName}…`}
                 disabled={chatLoading}
-                className="flex-1 text-[13px] border border-zinc-700 rounded-lg px-3 py-2 bg-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-600 transition disabled:opacity-50"
+                className="flex-1 text-[13px] border border-zinc-700 rounded-lg px-3 py-2 bg-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 focus:border-[var(--primary)] transition disabled:opacity-50"
               />
               <button
                 type="submit"
                 disabled={chatLoading || !input.trim()}
-                className="w-8 h-8 rounded-lg bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center transition-colors disabled:opacity-40 shrink-0"
+                className="w-8 h-8 rounded-lg text-white flex items-center justify-center hover:opacity-90 transition-opacity disabled:opacity-40 shrink-0"
+                style={{ background: "var(--primary)" }}
               >
                 {chatLoading
                   ? <Loader2 className="w-3.5 h-3.5 animate-spin" />

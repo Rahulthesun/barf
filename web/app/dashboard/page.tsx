@@ -225,7 +225,8 @@ function DeploymentCard({
           <>
             <Link
               href={`/apps/${dep.id}`}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold px-3 py-2 transition-colors"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl text-white text-xs font-semibold px-3 py-2 hover:opacity-90 transition-opacity"
+              style={{ background: "var(--primary)" }}
             >
               <Sparkles className="w-3.5 h-3.5" /> Open with Barfy
             </Link>

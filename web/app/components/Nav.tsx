@@ -4,28 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Moon, Sun, LayoutDashboard, LogOut } from "lucide-react";
-import { useTheme } from "next-themes";
+import { LayoutDashboard, LogOut } from "lucide-react";
 import { GithubIcon } from "./GithubIcon";
 import { createClient } from "@/utils/supabase/client";
-
-function ThemeButton() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 animate-pulse" />;
-  return (
-    <button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      aria-label="Toggle theme"
-      className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
-    >
-      {theme === "dark"
-        ? <Sun className="w-[15px] h-[15px]" />
-        : <Moon className="w-[15px] h-[15px]" />}
-    </button>
-  );
-}
 
 export function Nav() {
   const path = usePathname();
@@ -70,7 +51,7 @@ export function Nav() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0 group">
-          <div className="w-6 h-6 rounded-md overflow-hidden ring-1 ring-zinc-200 dark:ring-zinc-800 group-hover:ring-violet-400 transition-all">
+          <div className="w-6 h-6 rounded-md overflow-hidden ring-1 ring-zinc-200 dark:ring-zinc-800 group-hover:ring-[var(--primary)] transition-all">
             <Image src="/assets/logo.jpg" alt="barf" width={24} height={24} className="object-cover" />
           </div>
           <span className="font-mono text-[13px] font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -108,9 +89,6 @@ export function Nav() {
             <GithubIcon className="w-[15px] h-[15px]" />
           </a>
 
-          {/* Theme toggle */}
-          <ThemeButton />
-
           <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-800 mx-0.5 hidden sm:block" />
 
           {email ? (
@@ -144,7 +122,8 @@ export function Nav() {
               </Link>
               <Link
                 href="/signup"
-                className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-[13px] font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-colors shadow-sm"
+                className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-[13px] font-semibold text-white transition-colors shadow-sm"
+                style={{ background: "var(--primary)" }}
               >
                 Get started
               </Link>

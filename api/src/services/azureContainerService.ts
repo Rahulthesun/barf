@@ -49,7 +49,7 @@ function generateShortPassword(len = 12): string {
 }
 
 // Replace {{PLACEHOLDER}} tokens in deploy_env values
-function interpolateEnv(
+export function interpolateEnv(
   deployEnv: Record<string, string>,
   vars: Record<string, string>,
 ): Record<string, string> {
@@ -199,6 +199,8 @@ export async function runDeployment(params: {
   const pgDb          = appSlug.replace(/-/g, '');
   const aciHostname   = `${dnsLabel}.${region}.azurecontainer.io`;
   const appUrl        = domain ? `https://${subdomain}.${domain}` : `http://${aciHostname}`;
+  // Bare hostname without scheme — required by Gitea DOMAIN, Nextcloud TRUSTED_DOMAINS, etc.
+  const appHostname   = new URL(appUrl).hostname;
 
   const resolvedEnv = interpolateEnv(params.deployEnv ?? {}, {
     POSTGRES_PASSWORD: pgPassword,
@@ -212,6 +214,7 @@ export async function runDeployment(params: {
     SECRET_KEY_HEX16:  secretKeyHex16,
     SECRET_KEY_SHORT:  secretKeyShort,
     APP_URL:           appUrl,
+    APP_HOSTNAME:      appHostname,
   });
 
   console.log(`[deploy] Starting ${appSlug} → ${dockerImage} (id=${deploymentId}, postgres=${requiresPostgres})`);

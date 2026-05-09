@@ -163,7 +163,8 @@ export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
     deploy_env: {
       GITEA__server__ROOT_URL:   '{{APP_URL}}',
       GITEA__server__HTTP_PORT:  '3000',
-      GITEA__server__DOMAIN:     '{{APP_URL}}',
+      // DOMAIN must be the bare hostname — no scheme — Gitea uses it for SSH clone URLs
+      GITEA__server__DOMAIN:     '{{APP_HOSTNAME}}',
     },
     deployable: true,
   },
@@ -286,7 +287,8 @@ export const DEPLOY_CONFIGS: Record<string, DeployConfig> = {
       POSTGRES_DB:               '{{POSTGRES_DB}}',
       NEXTCLOUD_ADMIN_USER:      'admin',
       NEXTCLOUD_ADMIN_PASSWORD:  '{{SECRET_KEY_SHORT}}',
-      NEXTCLOUD_TRUSTED_DOMAINS: '{{APP_URL}}',
+      // TRUSTED_DOMAINS must be bare hostname — Nextcloud rejects the full https:// URL
+      NEXTCLOUD_TRUSTED_DOMAINS: '{{APP_HOSTNAME}}',
       APACHE_HTTP_PORT_NUMBER:   '8080',
     },
     deployable: true,

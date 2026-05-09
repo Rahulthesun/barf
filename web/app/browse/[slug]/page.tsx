@@ -309,7 +309,7 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
                 { icon: Zap,    text: "Auto-stops after 4 hours" },
               ].map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-2.5 text-sm text-zinc-600 dark:text-zinc-400">
-                  <Icon className="w-4 h-4 text-violet-600 dark:text-violet-400 shrink-0" />{text}
+                  <Icon className="w-4 h-4 text-[var(--primary)] shrink-0" />{text}
                 </li>
               ))}
             </ul>
@@ -404,7 +404,8 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
 
             <div className="flex gap-2">
               <Link href={`/apps/${dep.id}`}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 text-white font-semibold py-3 hover:bg-violet-500 transition-colors text-[15px]">
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl text-white font-semibold py-3 hover:opacity-90 transition-opacity text-[15px]"
+                style={{ background: "var(--primary)" }}>
                 <Sparkles className="w-4 h-4" />
                 Open with Barfy
               </Link>

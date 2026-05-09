@@ -25,7 +25,7 @@ function MarkdownText({ text, isUser }: { text: string; isUser: boolean }) {
               key={i}
               className={`rounded px-1 py-0.5 text-[11px] font-mono ${
                 isUser
-                  ? "bg-violet-700/40 text-violet-100"
+                  ? "bg-black/20 text-white/90"
                   : "bg-zinc-700/60 text-zinc-200"
               }`}
             >
@@ -49,19 +49,19 @@ function MessageBubble({ msg }: { msg: Message }) {
     <div className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
       <div
         className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-          isUser ? "bg-violet-600" : "bg-violet-900/60"
+          isUser ? "bg-[var(--primary)]" : "bg-[var(--primary)]/15"
         }`}
       >
         {isUser ? (
           <User className="w-3 h-3 text-white" />
         ) : (
-          <Bot className="w-3 h-3 text-violet-400" />
+          <Bot className="w-3 h-3 text-[var(--primary)]" />
         )}
       </div>
       <div
         className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
           isUser
-            ? "bg-violet-600 text-white rounded-tr-sm"
+            ? "bg-[var(--primary)] text-white rounded-tr-sm"
             : "bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-tl-sm"
         }`}
       >
@@ -293,8 +293,8 @@ export function BarfyWidget({
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-violet-900/60 flex items-center justify-center">
-              <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+            <div className="w-7 h-7 rounded-lg bg-[var(--primary)]/15 flex items-center justify-center">
+              <Sparkles className="w-3.5 h-3.5 text-[var(--primary)]" />
             </div>
             <span className="font-semibold text-sm text-zinc-100">
               {displayTitle}
@@ -317,7 +317,7 @@ export function BarfyWidget({
         <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3 min-h-0">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
-              <Sparkles className="w-5 h-5 text-violet-500" />
+              <Sparkles className="w-5 h-5 text-[var(--primary)]" />
               <p className="text-sm text-zinc-500">Loading your guide…</p>
             </div>
           )}
@@ -334,7 +334,7 @@ export function BarfyWidget({
               <button
                 key={p}
                 onClick={() => sendMessage(p)}
-                className="text-[11px] rounded-full border border-violet-800/60 bg-violet-950/40 text-violet-400 px-2.5 py-1 hover:bg-violet-950/60 transition-colors"
+                className="text-[11px] rounded-full border border-[var(--primary)]/30 bg-[var(--primary)]/5 text-[var(--primary)] px-2.5 py-1 hover:bg-[var(--primary)]/10 transition-colors"
               >
                 {p}
               </button>
@@ -354,12 +354,13 @@ export function BarfyWidget({
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask Barfy anything…"
             disabled={loading}
-            className="flex-1 text-sm border border-zinc-700 rounded-xl px-3.5 py-2 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500 transition disabled:opacity-50"
+            className="flex-1 text-sm border border-zinc-700 rounded-xl px-3.5 py-2 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 focus:border-[var(--primary)] transition disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="w-8 h-8 rounded-xl bg-violet-600 text-white flex items-center justify-center hover:bg-violet-700 transition-colors disabled:opacity-40 shrink-0"
+            className="w-8 h-8 rounded-xl text-white flex items-center justify-center hover:opacity-90 transition-colors disabled:opacity-40 shrink-0"
+            style={{ background: "var(--primary)" }}
           >
             {loading ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -373,7 +374,8 @@ export function BarfyWidget({
       {/* Toggle button */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-lg flex items-center justify-center transition-colors"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full text-white shadow-lg flex items-center justify-center hover:opacity-90 transition-opacity"
+        style={{ background: "var(--primary)" }}
         aria-label={open ? "Close Barfy" : "Open Barfy"}
       >
         <Sparkles className="w-6 h-6" />
