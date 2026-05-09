@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Search, Loader2, Star, ArrowUpRight, SlidersHorizontal } from "lucide-react";
+import { Search, Loader2, Star, ArrowUpRight } from "lucide-react";
 import { Nav } from "../components/Nav";
 import { AppIcon } from "../components/AppIcon";
 
@@ -16,18 +16,11 @@ const CATEGORIES = [
   "Chat", "Project Mgmt", "Storage", "Auth", "DevOps", "Security",
 ];
 
-const CAT_COLORS: Record<string, { dot: string }> = {
-  Forms:          { dot: "bg-violet-500" },
-  Analytics:      { dot: "bg-emerald-500" },
-  CRM:            { dot: "bg-pink-500" },
-  Automation:     { dot: "bg-orange-500" },
-  Email:          { dot: "bg-blue-500" },
-  Chat:           { dot: "bg-cyan-500" },
-  "Project Mgmt": { dot: "bg-yellow-500" },
-  Storage:        { dot: "bg-slate-500" },
-  Auth:           { dot: "bg-indigo-500" },
-  DevOps:         { dot: "bg-red-500" },
-  Security:       { dot: "bg-purple-500" },
+const CAT_DOT: Record<string, string> = {
+  Forms: "#8a7bff", Analytics: "#10b981", CRM: "#ec4899",
+  Automation: "#FF6A1A", Email: "#3b82f6", Chat: "#06b6d4",
+  "Project Mgmt": "#eab308", Storage: "#94a3b8", Auth: "#6366f1",
+  DevOps: "#ef4444", Security: "#a855f7",
 };
 
 interface OssApp {
@@ -44,52 +37,61 @@ function fmtStars(n: number) {
 }
 
 function AppCard({ app }: { app: OssApp }) {
-  const dot = CAT_COLORS[app.category]?.dot ?? "bg-zinc-400";
+  const dotColor = CAT_DOT[app.category] ?? "var(--fg-dim)";
   return (
     <Link
       href={`/browse/${app.slug}`}
-      className="group flex flex-col bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 gap-4 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md dark:hover:shadow-zinc-900 transition-all card-glow"
+      className="card-glow"
+      style={{
+        display: "flex", flexDirection: "column",
+        background: "var(--bg-1)", borderRadius: 16,
+        border: "1px solid var(--line)", padding: 20, gap: 16,
+        textDecoration: "none", color: "inherit",
+        transition: "border-color .2s ease, transform .2s ease, box-shadow .2s ease",
+      }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--line-2)"; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--line)"; }}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center shrink-0">
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "var(--bg-2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             {app.logo_url
-              ? <img src={app.logo_url} alt={app.name} className="w-6 h-6 object-contain rounded-md" />
-              : <AppIcon siSlug={app.si_slug} appSlug={app.slug} fallbackLetter={app.name.charAt(0)} size={20} className="text-zinc-500 dark:text-zinc-400" />
+              ? <img src={app.logo_url} alt={app.name} style={{ width: 24, height: 24, objectFit: "contain", borderRadius: 6 }} />
+              : <AppIcon siSlug={app.si_slug} appSlug={app.slug} fallbackLetter={app.name.charAt(0)} size={20} className="text-[var(--fg-mute)]" />
             }
           </div>
-          <div className="min-w-0">
-            <p className="font-bold text-[14px] text-zinc-900 dark:text-zinc-100 leading-snug truncate">{app.name}</p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
-              <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 truncate">{app.category}</p>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontWeight: 700, fontSize: 14, color: "var(--fg)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{app.name}</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />
+              <p style={{ fontSize: 11, fontWeight: 500, color: "var(--fg-dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{app.category}</p>
             </div>
           </div>
         </div>
 
         {app.replaces && (
-          <span className="shrink-0 text-[10px] font-bold bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-full px-2.5 py-1 leading-none uppercase tracking-wide">
+          <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, background: "var(--primary)", color: "var(--primary-ink)", borderRadius: 999, padding: "4px 10px", lineHeight: 1, textTransform: "uppercase", letterSpacing: "0.05em" }}>
             vs {app.replaces}
           </span>
         )}
       </div>
 
-      <p className="text-[12px] text-zinc-500 dark:text-zinc-400 leading-relaxed line-clamp-2 flex-1">
+      <p style={{ fontSize: 12, color: "var(--fg-mute)", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", flex: 1 }}>
         {app.tagline}
       </p>
 
-      <div className="flex items-center justify-between pt-1">
-        <div className="flex items-center gap-2 text-[11px] text-zinc-400 dark:text-zinc-500 font-mono">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--fg-dim)", fontFamily: "var(--font-geist-mono)" }}>
           {app.stars > 0 && (
-            <span className="flex items-center gap-1">
-              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <Star style={{ width: 12, height: 12, fill: "#facc15", color: "#facc15" }} />
               {fmtStars(app.stars)}
             </span>
           )}
           {app.license && <><span>·</span><span>{app.license}</span></>}
           {app.language && <><span>·</span><span>{app.language}</span></>}
         </div>
-        <ArrowUpRight className="w-4 h-4 text-zinc-300 dark:text-zinc-600 group-hover:text-[var(--primary)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+        <ArrowUpRight style={{ width: 16, height: 16, color: "var(--fg-dim)", transition: "color .2s ease, transform .2s ease" }} className="group-hover:text-[var(--primary)]" />
       </div>
     </Link>
   );
@@ -97,21 +99,17 @@ function AppCard({ app }: { app: OssApp }) {
 
 function SkeletonCard() {
   return (
-    <div className="flex flex-col bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 gap-4 animate-pulse">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800" />
-        <div className="flex flex-col gap-1.5">
-          <div className="h-3.5 w-24 rounded-lg bg-zinc-100 dark:bg-zinc-800" />
-          <div className="h-2.5 w-14 rounded-lg bg-zinc-100 dark:bg-zinc-800" />
+    <div style={{ display: "flex", flexDirection: "column", background: "var(--bg-1)", borderRadius: 16, border: "1px solid var(--line)", padding: 20, gap: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: "var(--bg-2)", animation: "pulse 2s cubic-bezier(.4,0,.6,1) infinite" }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ height: 14, width: 96, borderRadius: 6, background: "var(--bg-2)", animation: "pulse 2s cubic-bezier(.4,0,.6,1) infinite" }} />
+          <div style={{ height: 10, width: 56, borderRadius: 6, background: "var(--bg-2)", animation: "pulse 2s cubic-bezier(.4,0,.6,1) infinite" }} />
         </div>
       </div>
-      <div className="flex flex-col gap-1.5">
-        <div className="h-3 w-full rounded-lg bg-zinc-100 dark:bg-zinc-800" />
-        <div className="h-3 w-3/4 rounded-lg bg-zinc-100 dark:bg-zinc-800" />
-      </div>
-      <div className="flex gap-2">
-        <div className="h-2.5 w-8 rounded-lg bg-zinc-100 dark:bg-zinc-800" />
-        <div className="h-2.5 w-12 rounded-lg bg-zinc-100 dark:bg-zinc-800" />
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ height: 12, width: "100%", borderRadius: 6, background: "var(--bg-2)", animation: "pulse 2s cubic-bezier(.4,0,.6,1) infinite" }} />
+        <div style={{ height: 12, width: "75%", borderRadius: 6, background: "var(--bg-2)", animation: "pulse 2s cubic-bezier(.4,0,.6,1) infinite" }} />
       </div>
     </div>
   );
@@ -159,18 +157,18 @@ function BrowseContent() {
   const regular  = apps.filter(a => !a.featured);
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", color: "var(--fg)" }}>
       <Nav />
 
-      <main className="flex-1">
+      <main style={{ flex: 1 }}>
         {/* Search hero */}
-        <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="max-w-3xl mx-auto px-4 sm:px-8 pt-12 pb-8 flex flex-col items-center gap-6 text-center">
+        <div style={{ background: "var(--bg-1)", borderBottom: "1px solid var(--line)" }}>
+          <div style={{ maxWidth: 768, margin: "0 auto", padding: "48px 32px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 24, textAlign: "center" }}>
             <div>
-              <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">
+              <h1 style={{ fontSize: "clamp(32px, 5vw, 48px)", fontWeight: 900, letterSpacing: "-0.03em", color: "var(--fg)", margin: 0 }}>
                 Find your OSS alternative
               </h1>
-              <p className="text-zinc-500 dark:text-zinc-400 text-[14px] mt-2.5">
+              <p style={{ color: "var(--fg-mute)", fontSize: 14, marginTop: 10, margin: "10px 0 0" }}>
                 {loading
                   ? "Loading apps…"
                   : `${apps.length} open-source apps · deploy any in under 2 minutes`}
@@ -178,36 +176,44 @@ function BrowseContent() {
             </div>
 
             {/* Search bar */}
-            <div className="relative w-full max-w-xl">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+            <div style={{ position: "relative", width: "100%", maxWidth: 480 }}>
+              <Search style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: "var(--fg-dim)", pointerEvents: "none" }} />
               <input
                 type="text"
                 placeholder="Search apps, or what they replace…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 shadow-sm pl-11 pr-5 py-3 text-[14px] placeholder:text-zinc-400 dark:placeholder:text-zinc-500 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 focus:border-[var(--primary)] transition-all"
+                style={{ width: "100%", borderRadius: 12, border: "1px solid var(--line-2)", background: "var(--bg-2)", paddingLeft: 44, paddingRight: 20, paddingTop: 12, paddingBottom: 12, fontSize: 14, color: "var(--fg)", outline: "none", boxSizing: "border-box", fontFamily: "inherit", transition: "border-color .2s ease, box-shadow .2s ease" }}
+                onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--primary)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 0 0 3px var(--primary-glow)"; }}
+                onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--line-2)"; (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
               />
               {loading && debouncedSearch && (
-                <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 animate-spin" />
+                <Loader2 style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: "var(--fg-dim)", animation: "spin 1s linear infinite" }} />
               )}
             </div>
 
             {/* Category pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full justify-center flex-wrap">
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
               {CATEGORIES.map((cat) => {
                 const active = category === cat;
-                const dot = CAT_COLORS[cat]?.dot;
+                const dot = CAT_DOT[cat];
                 return (
                   <button
                     key={cat}
                     onClick={() => setCategory(cat)}
-                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium border transition-all ${
-                      active
-                        ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100"
-                        : "bg-zinc-50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-200"
-                    }`}
+                    style={{
+                      flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6,
+                      borderRadius: 999, padding: "6px 12px", fontSize: 12, fontWeight: 500,
+                      border: `1px solid ${active ? "var(--primary)" : "var(--line-2)"}`,
+                      background: active ? "var(--primary)" : "var(--bg-2)",
+                      color: active ? "var(--primary-ink)" : "var(--fg-mute)",
+                      cursor: "pointer", fontFamily: "inherit",
+                      transition: "background .15s ease, border-color .15s ease, color .15s ease",
+                    }}
+                    onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.borderColor = "var(--line)"; (e.currentTarget as HTMLElement).style.color = "var(--fg)"; } }}
+                    onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.borderColor = "var(--line-2)"; (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)"; } }}
                   >
-                    {dot && <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-white dark:bg-zinc-900" : dot}`} />}
+                    {dot && <span style={{ width: 6, height: 6, borderRadius: "50%", background: active ? "var(--primary-ink)" : dot, flexShrink: 0 }} />}
                     {cat}
                   </button>
                 );
@@ -217,51 +223,49 @@ function BrowseContent() {
         </div>
 
         {/* Grid */}
-        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8">
+        <div style={{ maxWidth: 1240, margin: "0 auto", padding: "32px 32px" }}>
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
               {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : apps.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-32 gap-4 text-center">
-              <div className="text-5xl">🔍</div>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">No results</h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xs">
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "128px 0", gap: 16, textAlign: "center" }}>
+              <div style={{ fontSize: 48 }}>🔍</div>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--fg)", margin: 0 }}>No results</h3>
+              <p style={{ fontSize: 14, color: "var(--fg-mute)", maxWidth: 280, margin: 0 }}>
                 {debouncedSearch
                   ? `Nothing matched "${debouncedSearch}"${category !== "All" ? ` in ${category}` : ""}.`
                   : "No apps in this category yet."}
               </p>
               <button
                 onClick={() => { setSearch(""); setCategory("All"); }}
-                className="text-sm font-semibold text-[var(--primary)] hover:opacity-80 transition-opacity"
+                style={{ fontSize: 14, fontWeight: 600, color: "var(--primary)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
               >
                 Clear filters →
               </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-8">
-              {/* Featured section */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
               {featured.length > 0 && !debouncedSearch && (
                 <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-[10px] font-bold font-mono uppercase tracking-[0.15em] text-[var(--primary)]">Featured</span>
-                    <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800" />
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                    <span className="section-eyebrow" style={{ margin: 0 }}>Featured</span>
+                    <div style={{ height: 1, flex: 1, background: "var(--line)" }} />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
                     {featured.map((app) => <AppCard key={app.id} app={app} />)}
                   </div>
                 </div>
               )}
 
-              {/* All / search results */}
               <div>
                 {featured.length > 0 && !debouncedSearch && (
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-[10px] font-bold font-mono uppercase tracking-[0.15em] text-zinc-400 dark:text-zinc-600">All apps</span>
-                    <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800" />
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "var(--font-geist-mono)", textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--fg-dim)" }}>All apps</span>
+                    <div style={{ height: 1, flex: 1, background: "var(--line)" }} />
                   </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
                   {(debouncedSearch ? apps : regular).map((app) => <AppCard key={app.id} app={app} />)}
                 </div>
               </div>
@@ -270,10 +274,13 @@ function BrowseContent() {
         </div>
       </main>
 
-      <footer className="border-t border-zinc-200 dark:border-zinc-800 mt-auto bg-white dark:bg-zinc-950">
-        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-5 flex items-center justify-between">
-          <span className="font-mono text-[11px] font-bold text-zinc-400 dark:text-zinc-600">barf. © 2026</span>
-          <Link href="/" className="text-[11px] text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">← Home</Link>
+      <footer style={{ borderTop: "1px solid var(--line)", marginTop: "auto", background: "color-mix(in oklab, var(--bg) 90%, black)" }}>
+        <div style={{ maxWidth: 1240, margin: "0 auto", padding: "20px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontFamily: "var(--font-geist-mono)", fontSize: 11, fontWeight: 700, color: "var(--fg-dim)" }}>barf. © 2026</span>
+          <Link href="/" style={{ fontSize: 11, color: "var(--fg-dim)", textDecoration: "none", transition: "color .2s ease" }}
+            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = "var(--fg-mute)")}
+            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = "var(--fg-dim)")}
+          >← Home</Link>
         </div>
       </footer>
     </div>

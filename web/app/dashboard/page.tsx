@@ -46,51 +46,25 @@ interface Deployment {
 }
 
 function statusBadge(status: DeployStatus) {
-  const map: Record<DeployStatus, { label: string; cls: string; icon: React.ReactNode }> = {
-    queued: {
-      label: "Queued",
-      cls: "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700",
-      icon: <Clock className="w-3 h-3" />,
-    },
-    deploying: {
-      label: "Deploying",
-      cls: "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/30",
-      icon: <Loader2 className="w-3 h-3 animate-spin" />,
-    },
-    live: {
-      label: "Live",
-      cls: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30",
-      icon: <CheckCircle2 className="w-3 h-3" />,
-    },
-    stopping: {
-      label: "Stopping",
-      cls: "bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-200 dark:border-yellow-500/30",
-      icon: <Loader2 className="w-3 h-3 animate-spin" />,
-    },
-    stopped: {
-      label: "Sleeping",
-      cls: "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700",
-      icon: <Moon className="w-3 h-3" />,
-    },
-    starting: {
-      label: "Waking up",
-      cls: "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/30",
-      icon: <Loader2 className="w-3 h-3 animate-spin" />,
-    },
-    deleting: {
-      label: "Deleting",
-      cls: "bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 border-red-200 dark:border-red-500/30",
-      icon: <Loader2 className="w-3 h-3 animate-spin" />,
-    },
-    failed: {
-      label: "Failed",
-      cls: "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/30",
-      icon: <XCircle className="w-3 h-3" />,
-    },
+  type BadgeCfg = { label: string; color: string; bg: string; border: string; icon: React.ReactNode };
+  const map: Record<DeployStatus, BadgeCfg> = {
+    queued:    { label: "Queued",     color: "var(--fg-mute)", bg: "var(--bg-2)", border: "var(--line-2)", icon: <Clock className="w-3 h-3" /> },
+    deploying: { label: "Deploying",  color: "#60a5fa",        bg: "rgba(59,130,246,0.1)", border: "rgba(59,130,246,0.3)", icon: <Loader2 className="w-3 h-3 animate-spin" /> },
+    live:      { label: "Live",       color: "#34d399",        bg: "rgba(16,185,129,0.1)", border: "rgba(16,185,129,0.3)", icon: <CheckCircle2 className="w-3 h-3" /> },
+    stopping:  { label: "Stopping",   color: "#fbbf24",        bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.3)", icon: <Loader2 className="w-3 h-3 animate-spin" /> },
+    stopped:   { label: "Sleeping",   color: "var(--fg-mute)", bg: "var(--bg-2)", border: "var(--line-2)", icon: <Moon className="w-3 h-3" /> },
+    starting:  { label: "Waking up",  color: "#60a5fa",        bg: "rgba(59,130,246,0.1)", border: "rgba(59,130,246,0.3)", icon: <Loader2 className="w-3 h-3 animate-spin" /> },
+    deleting:  { label: "Deleting",   color: "#f87171",        bg: "rgba(239,68,68,0.1)",  border: "rgba(239,68,68,0.3)",  icon: <Loader2 className="w-3 h-3 animate-spin" /> },
+    failed:    { label: "Failed",     color: "#f87171",        bg: "rgba(239,68,68,0.1)",  border: "rgba(239,68,68,0.3)",  icon: <XCircle className="w-3 h-3" /> },
   };
   const cfg = map[status] ?? map.failed;
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${cfg.cls}`}>
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 6,
+      borderRadius: 999, border: `1px solid ${cfg.border}`,
+      background: cfg.bg, color: cfg.color,
+      padding: "4px 10px", fontSize: 11, fontWeight: 500, whiteSpace: "nowrap",
+    }}>
       {cfg.icon}{cfg.label}
     </span>
   );
@@ -110,6 +84,13 @@ function fmtCountdown(ms: number) {
   const m = Math.floor((ms % 3_600_000) / 60_000);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
+
+const iconBtn: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center",
+  width: 32, height: 32, borderRadius: 12,
+  border: "1px solid var(--line-2)", background: "var(--bg-1)",
+  color: "var(--fg-mute)", cursor: "pointer", transition: "background .15s, color .15s",
+};
 
 function DeploymentCard({
   dep,
@@ -155,18 +136,25 @@ function DeploymentCard({
         onCancel={() => setShowRedeployModal(false)}
       />
     )}
-    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
+    <div style={{
+      borderRadius: 16, border: "1px solid var(--line)",
+      background: "var(--bg-1)", display: "flex", flexDirection: "column",
+      transition: "border-color .15s, box-shadow .15s",
+    }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--line-2)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 24px rgba(0,0,0,0.18)"; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--line)"; (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
+    >
       {/* Card body */}
-      <div className="p-5 flex flex-col gap-3">
+      <div style={{ padding: "20px 20px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
         {/* Header row */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-11 h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
-              <AppIcon appSlug={dep.app_slug} fallbackLetter={dep.app_slug.charAt(0).toUpperCase()} size={22} className="text-zinc-500 dark:text-zinc-400" />
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <AppIcon appSlug={dep.app_slug} fallbackLetter={dep.app_slug.charAt(0).toUpperCase()} size={22} className="" />
             </div>
-            <div className="min-w-0">
-              <p className="font-semibold text-[15px] text-zinc-900 dark:text-zinc-100 truncate capitalize">{dep.app_slug}</p>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500 font-mono mt-0.5 truncate">id: {dep.id.slice(0, 8)}…</p>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontWeight: 600, fontSize: 15, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textTransform: "capitalize" }}>{dep.app_slug}</p>
+              <p style={{ fontSize: 11, color: "var(--fg-dim)", fontFamily: "var(--font-geist-mono)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>id: {dep.id.slice(0, 8)}…</p>
             </div>
           </div>
           {statusBadge(dep.status)}
@@ -178,44 +166,54 @@ function DeploymentCard({
             href={dep.live_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-xs font-mono text-emerald-600 dark:text-emerald-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors truncate"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              borderRadius: 10, border: "1px solid var(--line)", background: "var(--bg-2)",
+              padding: "8px 12px", fontSize: 11, fontFamily: "var(--font-geist-mono)",
+              color: "#34d399", textDecoration: "none", overflow: "hidden",
+              transition: "background .15s",
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-3)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-2)"; }}
           >
-            <Globe className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">{dep.live_url}</span>
-            <ExternalLink className="w-3 h-3 shrink-0 opacity-50" />
+            <Globe style={{ width: 14, height: 14, flexShrink: 0 }} />
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dep.live_url}</span>
+            <ExternalLink style={{ width: 12, height: 12, flexShrink: 0, opacity: 0.5 }} />
           </a>
         )}
 
         {dep.azure_app_name && !dep.live_url && dep.status !== "stopped" && (
-          <p className="text-xs font-mono text-zinc-500 dark:text-zinc-400 truncate">
-            <span className="text-zinc-300 dark:text-zinc-600">container:</span> {dep.azure_app_name}
+          <p style={{ fontSize: 11, fontFamily: "var(--font-geist-mono)", color: "var(--fg-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ color: "var(--fg-dim)" }}>container:</span> {dep.azure_app_name}
           </p>
         )}
 
         {/* Countdown + deployed time */}
-        <p className="text-xs font-mono text-zinc-400 dark:text-zinc-500">
+        <p style={{ fontSize: 11, fontFamily: "var(--font-geist-mono)", color: "var(--fg-dim)" }}>
           Deployed {timeSince(dep.created_at)}
           {dep.status === "live" && shutdownMs > 0 && (
-            <> · Stops in <span className="text-zinc-600 dark:text-zinc-300">{fmtCountdown(shutdownMs)}</span></>
+            <> · Stops in <span style={{ color: "var(--fg-mute)" }}>{fmtCountdown(shutdownMs)}</span></>
           )}
         </p>
       </div>
 
       {/* Footer actions */}
-      <div className="px-5 py-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-2">
+      <div style={{ padding: "10px 20px 14px", borderTop: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 8 }}>
 
         {/* Transient state */}
         {isTransient && (
           <>
-            <div className="flex-1 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
-              <span className="capitalize">{dep.status}…</span>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--fg-mute)" }}>
+              <Loader2 style={{ width: 14, height: 14, color: "#60a5fa" }} className="animate-spin" />
+              <span style={{ textTransform: "capitalize" }}>{dep.status}…</span>
             </div>
             <button
               onClick={onRefresh}
-              className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 transition-colors"
+              style={{ ...iconBtn, width: "auto", padding: "0 12px", gap: 6, fontSize: 12 }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-2)"; (e.currentTarget as HTMLElement).style.color = "var(--fg)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-1)"; (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)"; }}
             >
-              <RefreshCw className="w-3 h-3" /> Refresh
+              <RefreshCw style={{ width: 12, height: 12 }} /> Refresh
             </button>
           </>
         )}
@@ -225,42 +223,56 @@ function DeploymentCard({
           <>
             <Link
               href={`/apps/${dep.id}`}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl text-white text-xs font-semibold px-3 py-2 hover:opacity-90 transition-opacity"
-              style={{ background: "var(--primary)" }}
+              style={{
+                flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                gap: 6, borderRadius: 12, background: "var(--primary)", color: "var(--primary-ink)",
+                fontSize: 12, fontWeight: 600, padding: "8px 12px", textDecoration: "none",
+                transition: "opacity .15s",
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.88"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
             >
-              <Sparkles className="w-3.5 h-3.5" /> Open with Barfy
+              <Sparkles style={{ width: 14, height: 14 }} /> Open with Barfy
             </Link>
             {dep.live_url && (
               <a
                 href={dep.live_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                style={iconBtn}
                 title="Open app"
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-2)"; (e.currentTarget as HTMLElement).style.color = "var(--fg)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-1)"; (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)"; }}
               >
-                <ExternalLink className="w-3.5 h-3.5" />
+                <ExternalLink style={{ width: 14, height: 14 }} />
               </a>
             )}
             <button
               onClick={() => onKeepAlive(dep.id)}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              style={iconBtn}
               title="Keep alive"
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-2)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-1)"; }}
             >
-              <Zap className="w-3.5 h-3.5 text-yellow-500" />
+              <Zap style={{ width: 14, height: 14, color: "#fbbf24" }} />
             </button>
             <button
               onClick={() => onStop(dep.id)}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              style={iconBtn}
               title="Stop"
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-2)"; (e.currentTarget as HTMLElement).style.color = "var(--fg)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-1)"; (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)"; }}
             >
-              <Square className="w-3.5 h-3.5" />
+              <Square style={{ width: 14, height: 14 }} />
             </button>
             <button
               onClick={() => setShowRedeployModal(true)}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors"
+              style={{ ...iconBtn, color: "#f59e0b" }}
               title="Redeploy"
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(245,158,11,0.12)"; (e.currentTarget as HTMLElement).style.color = "#fbbf24"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-1)"; (e.currentTarget as HTMLElement).style.color = "#f59e0b"; }}
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw style={{ width: 14, height: 14 }} />
             </button>
           </>
         )}
@@ -270,23 +282,34 @@ function DeploymentCard({
           <>
             <button
               onClick={() => onStart(dep.id)}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 transition-colors"
+              style={{
+                flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                gap: 6, borderRadius: 12, background: "#059669", color: "#fff",
+                fontSize: 12, fontWeight: 600, padding: "8px 12px", border: "none",
+                cursor: "pointer", transition: "background .15s",
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#047857"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#059669"; }}
             >
-              <Play className="w-3.5 h-3.5" /> Wake up
+              <Play style={{ width: 14, height: 14 }} /> Wake up
             </button>
             <button
               onClick={() => setShowRedeployModal(true)}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-colors"
+              style={{ ...iconBtn, color: "#f59e0b" }}
               title="Redeploy"
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(245,158,11,0.12)"; (e.currentTarget as HTMLElement).style.color = "#fbbf24"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-1)"; (e.currentTarget as HTMLElement).style.color = "#f59e0b"; }}
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw style={{ width: 14, height: 14 }} />
             </button>
             <button
               onClick={() => setShowDeleteModal(true)}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+              style={{ ...iconBtn, color: "#f87171" }}
               title="Delete"
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.12)"; (e.currentTarget as HTMLElement).style.color = "#ef4444"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-1)"; (e.currentTarget as HTMLElement).style.color = "#f87171"; }}
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 style={{ width: 14, height: 14 }} />
             </button>
           </>
         )}
@@ -296,16 +319,25 @@ function DeploymentCard({
           <>
             <button
               onClick={() => setShowRedeployModal(true)}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-3 py-2 transition-colors"
+              style={{
+                flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                gap: 6, borderRadius: 12, background: "var(--primary)", color: "var(--primary-ink)",
+                fontSize: 12, fontWeight: 600, padding: "8px 12px", border: "none",
+                cursor: "pointer", transition: "opacity .15s",
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.88"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
             >
-              <RefreshCw className="w-3.5 h-3.5" /> Redeploy
+              <RefreshCw style={{ width: 14, height: 14 }} /> Redeploy
             </button>
             <button
               onClick={() => setShowDeleteModal(true)}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+              style={{ ...iconBtn, color: "#f87171" }}
               title="Delete"
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.12)"; (e.currentTarget as HTMLElement).style.color = "#ef4444"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-1)"; (e.currentTarget as HTMLElement).style.color = "#f87171"; }}
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 style={{ width: 14, height: 14 }} />
             </button>
           </>
         )}
@@ -317,22 +349,29 @@ function DeploymentCard({
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center py-32 gap-5 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-        <Server className="w-7 h-7 text-zinc-400 dark:text-zinc-600" />
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "128px 0", gap: 20, textAlign: "center" }}>
+      <div style={{ width: 64, height: 64, borderRadius: 16, background: "var(--bg-2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Server style={{ width: 28, height: 28, color: "var(--fg-dim)" }} />
       </div>
       <div>
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">No deployments yet</h3>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs">
+        <h3 style={{ fontSize: 18, fontWeight: 600, color: "var(--fg)" }}>No deployments yet</h3>
+        <p style={{ fontSize: 14, color: "var(--fg-mute)", marginTop: 4, maxWidth: 280 }}>
           Browse open-source alternatives and hit &quot;Host This&quot; to spin up your first deployment.
         </p>
       </div>
       <Link
         href="/browse"
-        className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold px-6 py-3 hover:opacity-90 transition-opacity text-sm"
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 8,
+          borderRadius: 12, background: "var(--primary)", color: "var(--primary-ink)",
+          fontWeight: 600, padding: "12px 24px", fontSize: 14, textDecoration: "none",
+          transition: "opacity .15s",
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.88"; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
       >
         Browse apps
-        <ArrowRight className="w-4 h-4" />
+        <ArrowRight style={{ width: 16, height: 16 }} />
       </Link>
     </div>
   );
@@ -413,7 +452,6 @@ export default function DashboardPage() {
   const stopped = deployments.filter(d => d.status === "stopped");
   const failed  = deployments.filter(d => d.status === "failed");
 
-  // Sort: live first, then in-progress, then stopped, then failed
   const sorted = [...live, ...active, ...stopped, ...failed];
 
   const cardProps = {
@@ -426,58 +464,63 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", color: "var(--fg)" }}>
 
       <Nav />
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-8 py-10">
+      <main style={{ flex: 1, maxWidth: 1152, margin: "0 auto", width: "100%", padding: "40px 32px" }}>
 
         {/* Page header */}
-        <div className="flex items-start justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">My Deployments</h1>
-          </div>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 24 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--fg)" }}>My Deployments</h1>
           <button
             onClick={fetchDeployments}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 text-sm font-medium px-3.5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              borderRadius: 10, border: "1px solid var(--line-2)", background: "var(--bg-1)",
+              color: "var(--fg-mute)", fontSize: 13, fontWeight: 500,
+              padding: "8px 14px", cursor: "pointer", transition: "background .15s, color .15s",
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-2)"; (e.currentTarget as HTMLElement).style.color = "var(--fg)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-1)"; (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)"; }}
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw style={{ width: 14, height: 14 }} />
             Refresh
           </button>
         </div>
 
         {/* Stats bar */}
         {!loading && (
-          <div className="flex flex-wrap items-center gap-2 mb-8">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-medium px-3 py-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 32 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 999, border: "1px solid rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.1)", color: "#34d399", fontSize: 12, fontWeight: 500, padding: "4px 12px" }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
               {live.length} Live
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-xs font-medium px-3 py-1">
-              <span className="w-1.5 h-1.5 rounded-full border border-zinc-400 dark:border-zinc-500" />
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 999, border: "1px solid var(--line-2)", background: "var(--bg-2)", color: "var(--fg-mute)", fontSize: 12, fontWeight: 500, padding: "4px 12px" }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", border: "1.5px solid var(--fg-dim)", display: "inline-block" }} />
               {stopped.length} Sleeping
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-medium px-3 py-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 999, border: "1px solid rgba(59,130,246,0.3)", background: "rgba(59,130,246,0.1)", color: "#60a5fa", fontSize: 12, fontWeight: 500, padding: "4px 12px" }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#3b82f6", display: "inline-block" }} />
               {active.length} In progress
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-medium px-3 py-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 999, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#f87171", fontSize: 12, fontWeight: 500, padding: "4px 12px" }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ef4444", display: "inline-block" }} />
               {failed.length} Failed
             </span>
           </div>
         )}
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 h-48 animate-pulse" />
+              <div key={i} style={{ borderRadius: 16, border: "1px solid var(--line)", background: "var(--bg-1)", height: 192 }} className="animate-pulse" />
             ))}
           </div>
         ) : deployments.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
             {sorted.map(d => (
               <DeploymentCard key={d.id} dep={d} {...cardProps} />
             ))}
@@ -486,10 +529,13 @@ export default function DashboardPage() {
 
       </main>
 
-      <footer className="border-t border-zinc-200 dark:border-zinc-800 mt-auto bg-white dark:bg-zinc-950">
-        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-5 flex items-center justify-between">
-          <span className="font-mono text-[11px] font-bold text-zinc-400 dark:text-zinc-600">barf. © 2026</span>
-          <Link href="/browse" className="text-[11px] text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">
+      <footer style={{ borderTop: "1px solid var(--line)", background: "color-mix(in oklab, var(--bg) 90%, black)", marginTop: "auto" }}>
+        <div style={{ maxWidth: 1152, margin: "0 auto", padding: "20px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontFamily: "var(--font-geist-mono)", fontSize: 11, fontWeight: 700, color: "var(--fg-dim)" }}>barf. © 2026</span>
+          <Link href="/browse" style={{ fontSize: 11, color: "var(--fg-dim)", textDecoration: "none", transition: "color .15s" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "var(--fg-dim)"; }}
+          >
             Browse apps →
           </Link>
         </div>

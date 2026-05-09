@@ -6,6 +6,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Nav } from "../components/Nav";
 import { createClient } from "@/utils/supabase/client";
 
+const inputStyle: React.CSSProperties = {
+  width: "100%", borderRadius: 12, padding: "10px 16px",
+  border: "1px solid var(--line-2)", background: "var(--bg-2)",
+  color: "var(--fg)", fontSize: 14, outline: "none",
+  transition: "border-color .15s, box-shadow .15s",
+  boxSizing: "border-box",
+};
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -18,63 +26,54 @@ function LoginForm() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
     const supabase = createClient();
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-
     if (authError) {
       setError(authError.message);
       setLoading(false);
       return;
     }
-
     router.push(searchParams.get("next") ?? "/dashboard");
   }
 
-  const inputCls = "w-full border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-sm placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 focus:border-[var(--primary)] transition";
-
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="email" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Email
-        </label>
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <label htmlFor="email" style={{ fontSize: 13, fontWeight: 500, color: "var(--fg-mute)" }}>Email</label>
         <input
-          id="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className={inputCls}
-          placeholder="you@example.com"
+          id="email" type="email" autoComplete="email" required
+          value={email} onChange={e => setEmail(e.target.value)}
+          style={inputStyle} placeholder="you@example.com"
+          onFocus={e => { e.currentTarget.style.borderColor = "var(--primary)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--primary-glow)"; }}
+          onBlur={e => { e.currentTarget.style.borderColor = "var(--line-2)"; e.currentTarget.style.boxShadow = "none"; }}
         />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="password" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Password
-        </label>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <label htmlFor="password" style={{ fontSize: 13, fontWeight: 500, color: "var(--fg-mute)" }}>Password</label>
         <input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className={inputCls}
-          placeholder="••••••••"
+          id="password" type="password" autoComplete="current-password" required
+          value={password} onChange={e => setPassword(e.target.value)}
+          style={inputStyle} placeholder="••••••••"
+          onFocus={e => { e.currentTarget.style.borderColor = "var(--primary)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--primary-glow)"; }}
+          onBlur={e => { e.currentTarget.style.borderColor = "var(--line-2)"; e.currentTarget.style.boxShadow = "none"; }}
         />
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p style={{ fontSize: 13, color: "var(--red)" }}>{error}</p>
       )}
 
       <button
-        type="submit"
-        disabled={loading}
-        className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl py-2.5 font-semibold text-sm hover:bg-zinc-700 dark:hover:bg-zinc-100 transition-colors disabled:opacity-50 mt-1"
+        type="submit" disabled={loading}
+        style={{
+          borderRadius: 12, padding: "10px 0", fontWeight: 600, fontSize: 14,
+          background: "var(--primary)", color: "var(--primary-ink)",
+          border: "none", cursor: loading ? "not-allowed" : "pointer",
+          opacity: loading ? 0.6 : 1, marginTop: 4, transition: "opacity .15s",
+        }}
+        onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLElement).style.opacity = "0.88"; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = loading ? "0.6" : "1"; }}
       >
         {loading ? "Signing in…" : "Sign in"}
       </button>
@@ -84,21 +83,25 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", color: "var(--fg)" }}>
       <Nav />
 
-      <main className="flex-1 flex items-center justify-center px-4 py-16">
-        <div className="w-full max-w-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm p-8">
-          <h1 className="text-2xl font-bold tracking-tight mb-1 text-zinc-900 dark:text-zinc-100">Sign in</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">Welcome back to barf.</p>
+      <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "64px 16px" }}>
+        <div style={{
+          width: "100%", maxWidth: 384,
+          background: "var(--bg-1)", border: "1px solid var(--line)",
+          borderRadius: 20, padding: 32,
+        }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", marginBottom: 4, color: "var(--fg)" }}>Sign in</h1>
+          <p style={{ fontSize: 13, color: "var(--fg-mute)", marginBottom: 24 }}>Welcome back to barf.</p>
 
           <Suspense fallback={null}>
             <LoginForm />
           </Suspense>
 
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center mt-6">
+          <p style={{ fontSize: 13, color: "var(--fg-mute)", textAlign: "center", marginTop: 24 }}>
             No account?{" "}
-            <Link href="/signup" className="text-zinc-900 dark:text-zinc-100 font-medium hover:underline underline-offset-2">
+            <Link href="/signup" style={{ color: "var(--fg)", fontWeight: 500, textDecoration: "underline", textUnderlineOffset: 3 }}>
               Sign up
             </Link>
           </p>

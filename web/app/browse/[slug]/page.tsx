@@ -33,9 +33,9 @@ const CAT_COLOR: Record<string, { bg: string; text: string; border: string }> = 
   Monitoring:     { bg: "bg-red-50 dark:bg-red-950/40",         text: "text-red-600 dark:text-red-400",        border: "border-red-200 dark:border-red-800/60" },
 };
 const DEFAULT_CAT = {
-  bg: "bg-zinc-100 dark:bg-zinc-800",
-  text: "text-zinc-600 dark:text-zinc-400",
-  border: "border-zinc-200 dark:border-zinc-700",
+  bg: "bg-[var(--bg-2)]",
+  text: "text-[var(--fg-mute)]",
+  border: "border-[var(--line-2)]",
 };
 
 interface OssApp {
@@ -269,17 +269,17 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
         onCancel={() => setShowDeleteModal(false)}
       />
     )}
-    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
+    <div style={{ borderRadius: 16, border: "1px solid var(--line-2)", background: "var(--bg-1)", overflow: "hidden" }}>
 
       {/* header */}
-      <div className="px-6 pt-5 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center">
-            <AppIcon siSlug={app.si_slug} appSlug={app.slug} fallbackLetter={app.name.charAt(0)} size={16} className="text-zinc-500 dark:text-zinc-400" />
+      <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--line)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--bg-2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <AppIcon siSlug={app.si_slug} appSlug={app.slug} fallbackLetter={app.name.charAt(0)} size={16} className="text-[var(--fg-mute)]" />
           </div>
-          <h2 className="font-bold text-base text-zinc-900 dark:text-zinc-100">Host {app.name}</h2>
+          <h2 style={{ fontWeight: 700, fontSize: 15, color: "var(--fg)", margin: 0 }}>Host {app.name}</h2>
         </div>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 pl-11">
+        <p style={{ fontSize: 12, color: "var(--fg-mute)", paddingLeft: 44, margin: 0 }}>
           {st === "idle"    ? "Your own instance in ~2 minutes." : ""}
           {isDeploying      ? `Setting up… ${fmtElapsed(elapsed)}` : ""}
           {isStarting       ? `Waking up… ${fmtElapsed(elapsed)}` : ""}
@@ -290,26 +290,24 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
         </p>
       </div>
 
-      <div className="px-6 py-5 flex flex-col gap-4">
+      <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
 
-        {/* CHECKING */}
         {checking && (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-zinc-300 dark:text-zinc-600" />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 0" }}>
+            <Loader2 style={{ width: 20, height: 20, color: "var(--fg-dim)", animation: "spin 1s linear infinite" }} />
           </div>
         )}
 
-        {/* IDLE */}
         {!checking && st === "idle" && (
           <>
-            <ul className="flex flex-col gap-2.5">
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
               {[
                 { icon: Server, text: "1 vCPU · 1.5 GB RAM" },
                 { icon: Globe,  text: "Your own public URL" },
                 { icon: Zap,    text: "Auto-stops after 4 hours" },
               ].map(({ icon: Icon, text }) => (
-                <li key={text} className="flex items-center gap-2.5 text-sm text-zinc-600 dark:text-zinc-400">
-                  <Icon className="w-4 h-4 text-[var(--primary)] shrink-0" />{text}
+                <li key={text} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "var(--fg-mute)" }}>
+                  <Icon style={{ width: 16, height: 16, color: "var(--primary)", flexShrink: 0 }} />{text}
                 </li>
               ))}
             </ul>
@@ -317,152 +315,163 @@ function DeployPanel({ app, onLive }: { app: OssApp; onLive?: (url: string) => v
             {app.deployable !== false ? (
               <>
                 <button onClick={handleDeploy}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold py-3 hover:bg-zinc-700 dark:hover:bg-zinc-100 transition-colors text-[15px]">
-                  Host This
-                  <ArrowUpRight className="w-4 h-4" />
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, background: "var(--primary)", color: "var(--primary-ink)", fontWeight: 700, padding: "12px 0", fontSize: 15, border: "none", cursor: "pointer", fontFamily: "inherit", transition: "opacity .15s ease" }}
+                  onMouseEnter={e => ((e.currentTarget as HTMLElement).style.opacity = "0.9")}
+                  onMouseLeave={e => ((e.currentTarget as HTMLElement).style.opacity = "1")}
+                >
+                  Host This <ArrowUpRight style={{ width: 16, height: 16 }} />
                 </button>
                 {deployError && (
-                  <div className="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+                  <div style={{ borderRadius: 12, background: "rgba(255,91,91,0.08)", border: "1px solid rgba(255,91,91,0.3)", padding: "12px 16px", fontSize: 14, color: "var(--red)" }}>
                     {deployError}
                   </div>
                 )}
-                <p className="text-[11px] font-mono text-zinc-400 dark:text-zinc-600 text-center">Free tier · No card required</p>
+                <p style={{ fontSize: 11, fontFamily: "var(--font-geist-mono)", color: "var(--fg-dim)", textAlign: "center", margin: 0 }}>Free tier · No card required</p>
               </>
             ) : (
-              <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 px-4 py-3 text-center">
-                <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Coming soon</p>
-                <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">One-click hosting for this app is being verified</p>
+              <div style={{ borderRadius: 12, background: "var(--bg-2)", border: "1px solid var(--line)", padding: "12px 16px", textAlign: "center" }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "var(--fg-mute)", margin: 0 }}>Coming soon</p>
+                <p style={{ fontSize: 12, color: "var(--fg-dim)", marginTop: 4, margin: "4px 0 0" }}>One-click hosting for this app is being verified</p>
               </div>
             )}
           </>
         )}
 
-        {/* DEPLOYING */}
         {isDeploying && (
           <>
-            <div className="flex flex-col gap-3">
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {STEPS.map((step, i) => {
                 const cur = currentStep(elapsed);
                 const done = i < cur;
                 const active = i === cur;
                 return (
-                  <div key={step.label} className="flex items-center gap-3">
+                  <div key={step.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     {done
-                      ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                      ? <CheckCircle2 style={{ width: 16, height: 16, color: "#10b981", flexShrink: 0 }} />
                       : active
-                        ? <Loader2 className="w-4 h-4 text-zinc-900 dark:text-zinc-100 animate-spin shrink-0" />
-                        : <div className="w-4 h-4 rounded-full border-2 border-zinc-300 dark:border-zinc-600 shrink-0" />
+                        ? <Loader2 style={{ width: 16, height: 16, color: "var(--fg)", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+                        : <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid var(--line-2)", flexShrink: 0 }} />
                     }
-                    <span className={`text-sm ${
-                      done   ? "text-zinc-300 dark:text-zinc-600 line-through" :
-                      active ? "text-zinc-900 dark:text-zinc-100 font-medium" :
-                               "text-zinc-400 dark:text-zinc-500"
-                    }`}>
+                    <span style={{ fontSize: 14, color: done ? "var(--fg-dim)" : active ? "var(--fg)" : "var(--fg-mute)", fontWeight: active ? 500 : 400, textDecoration: done ? "line-through" : "none" }}>
                       {step.label}
                     </span>
                   </div>
                 );
               })}
             </div>
-            <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 px-4 py-2.5 text-xs font-mono text-zinc-500 dark:text-zinc-400 text-center">
+            <div style={{ borderRadius: 12, background: "var(--bg-2)", border: "1px solid var(--line)", padding: "10px 16px", fontSize: 12, fontFamily: "var(--font-geist-mono)", color: "var(--fg-mute)", textAlign: "center" }}>
               Usually 2–3 minutes total
             </div>
           </>
         )}
 
-        {/* STARTING */}
         {isStarting && (
-          <div className="flex flex-col items-center gap-3 py-4">
-            <Loader2 className="w-7 h-7 text-zinc-900 dark:text-zinc-100 animate-spin" />
-            <div className="text-center">
-              <p className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Waking up…</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Usually under 30 seconds · {fmtElapsed(elapsed)}</p>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "16px 0" }}>
+            <Loader2 style={{ width: 28, height: 28, color: "var(--fg)", animation: "spin 1s linear infinite" }} />
+            <div style={{ textAlign: "center" }}>
+              <p style={{ fontWeight: 600, fontSize: 14, color: "var(--fg)", margin: 0 }}>Waking up…</p>
+              <p style={{ fontSize: 12, color: "var(--fg-mute)", marginTop: 4 }}>Usually under 30 seconds · {fmtElapsed(elapsed)}</p>
             </div>
           </div>
         )}
 
-        {/* STOPPING */}
         {isStopping && (
-          <div className="flex items-center gap-3 py-4 justify-center">
-            <Loader2 className="w-5 h-5 text-zinc-400 animate-spin" />
-            <span className="text-sm text-zinc-500 dark:text-zinc-400">Stopping container…</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 0", justifyContent: "center" }}>
+            <Loader2 style={{ width: 20, height: 20, color: "var(--fg-mute)", animation: "spin 1s linear infinite" }} />
+            <span style={{ fontSize: 14, color: "var(--fg-mute)" }}>Stopping container…</span>
           </div>
         )}
 
-        {/* LIVE */}
         {st === "live" && dep?.live_url && (
           <>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">Live</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", animation: "pulse 1.6s infinite" }} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#10b981" }}>Live</span>
               </div>
               {shutdownMs > 0 && (
-                <span className="text-xs font-mono text-zinc-400 dark:text-zinc-500">Stops in {fmtCountdown(shutdownMs)}</span>
+                <span style={{ fontSize: 12, fontFamily: "var(--font-geist-mono)", color: "var(--fg-dim)" }}>Stops in {fmtCountdown(shutdownMs)}</span>
               )}
             </div>
 
-            <div className="flex gap-2">
+            <div style={{ display: "flex", gap: 8 }}>
               <Link href={`/apps/${dep.id}`}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl text-white font-semibold py-3 hover:opacity-90 transition-opacity text-[15px]"
-                style={{ background: "var(--primary)" }}>
-                <Sparkles className="w-4 h-4" />
-                Open with Barfy
+                style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, background: "var(--primary)", color: "var(--primary-ink)", fontWeight: 700, padding: "12px 0", fontSize: 15, textDecoration: "none", transition: "opacity .15s ease" }}
+                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.opacity = "0.9")}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.opacity = "1")}
+              >
+                <Sparkles style={{ width: 16, height: 16 }} /> Open with Barfy
               </Link>
               <a href={dep.live_url} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center justify-center w-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-                title="Open without Barfy">
-                <ExternalLink className="w-4 h-4" />
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 48, borderRadius: 12, background: "var(--bg-2)", border: "1px solid var(--line)", color: "var(--fg-mute)", textDecoration: "none", transition: "background .15s ease, color .15s ease" }}
+                title="Open without Barfy"
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-3)"; (e.currentTarget as HTMLElement).style.color = "var(--fg)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-2)"; (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)"; }}
+              >
+                <ExternalLink style={{ width: 16, height: 16 }} />
               </a>
             </div>
 
-            <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 px-3 py-2">
-              <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 truncate block">{dep.live_url}</span>
+            <div style={{ borderRadius: 12, background: "var(--bg-2)", border: "1px solid var(--line)", padding: "8px 12px" }}>
+              <span style={{ fontSize: 11, fontFamily: "var(--font-geist-mono)", color: "var(--fg-mute)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>{dep.live_url}</span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <button onClick={handleKeepAlive}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
-                <Zap className="w-3.5 h-3.5 text-yellow-500" /> Keep alive
+                style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 8, border: "1px solid var(--line-2)", padding: "8px 0", fontSize: 12, fontWeight: 500, color: "var(--fg-mute)", background: "transparent", cursor: "pointer", fontFamily: "inherit", transition: "background .15s ease" }}
+                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = "var(--bg-2)")}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = "transparent")}
+              >
+                <Zap style={{ width: 14, height: 14, color: "#facc15" }} /> Keep alive
               </button>
               <button onClick={handleStop}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
-                <Square className="w-3.5 h-3.5" /> Stop
+                style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 8, border: "1px solid var(--line-2)", padding: "8px 0", fontSize: 12, fontWeight: 500, color: "var(--fg-mute)", background: "transparent", cursor: "pointer", fontFamily: "inherit", transition: "background .15s ease" }}
+                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = "var(--bg-2)")}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = "transparent")}
+              >
+                <Square style={{ width: 14, height: 14 }} /> Stop
               </button>
             </div>
           </>
         )}
 
-        {/* STOPPED */}
         {st === "stopped" && (
           <>
-            <div className="flex flex-col items-center gap-1 py-2 text-center">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="w-2 h-2 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-                <span className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Sleeping</span>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "8px 0", textAlign: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", border: "2px solid var(--fg-dim)" }} />
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--fg-mute)" }}>Sleeping</span>
               </div>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500">Container is paused. Wake it up in under 30 seconds.</p>
+              <p style={{ fontSize: 12, color: "var(--fg-dim)", margin: 0 }}>Container is paused. Wake it up in under 30 seconds.</p>
             </div>
             <button onClick={handleStart}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold py-3 hover:bg-zinc-700 dark:hover:bg-zinc-100 transition-colors text-[15px]">
-              <Play className="w-4 h-4" /> Wake Up
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, background: "var(--primary)", color: "var(--primary-ink)", fontWeight: 700, padding: "12px 0", fontSize: 15, border: "none", cursor: "pointer", fontFamily: "inherit", transition: "opacity .15s ease" }}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.opacity = "0.9")}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.opacity = "1")}
+            >
+              <Play style={{ width: 16, height: 16 }} /> Wake Up
             </button>
             <button onClick={handleTearDown}
-              className="inline-flex items-center justify-center gap-1.5 text-xs text-red-400 hover:text-red-600 dark:hover:text-red-400 transition-colors py-1">
-              <Trash2 className="w-3.5 h-3.5" /> Permanently delete
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, color: "var(--red)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "4px 0", transition: "opacity .15s ease" }}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.opacity = "0.7")}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.opacity = "1")}
+            >
+              <Trash2 style={{ width: 14, height: 14 }} /> Permanently delete
             </button>
           </>
         )}
 
-        {/* FAILED */}
         {st === "failed" && (
           <>
-            <div className="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/60 p-4 text-center">
-              <p className="text-sm font-semibold text-red-600 dark:text-red-400">Deployment failed</p>
-              <p className="text-xs text-red-400 dark:text-red-500 mt-1">Check your Azure resource group for details.</p>
+            <div style={{ borderRadius: 12, background: "rgba(255,91,91,0.08)", border: "1px solid rgba(255,91,91,0.2)", padding: 16, textAlign: "center" }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--red)", margin: 0 }}>Deployment failed</p>
+              <p style={{ fontSize: 12, color: "var(--fg-dim)", marginTop: 4 }}>Check your Azure resource group for details.</p>
             </div>
             <button onClick={() => { setDep(null); stopPolling(); }}
-              className="inline-flex items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-700 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 12, border: "1px solid var(--line-2)", padding: "10px 0", fontSize: 14, fontWeight: 500, color: "var(--fg-mute)", background: "transparent", cursor: "pointer", fontFamily: "inherit", transition: "background .15s ease" }}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = "var(--bg-2)")}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = "transparent")}
+            >
               Try again
             </button>
           </>
@@ -488,18 +497,18 @@ export default function AppDetailPage({ params }: { params: Promise<{ slug: stri
   }, [slug]);
 
   if (notFound) return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-      <span className="text-5xl">🤷</span>
-      <h1 className="text-2xl font-bold">App not found</h1>
-      <Link href="/browse" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors underline underline-offset-4">
-        <ArrowLeft className="w-4 h-4" /> Back to browse
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, background: "var(--bg)", color: "var(--fg)" }}>
+      <span style={{ fontSize: 48 }}>🤷</span>
+      <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>App not found</h1>
+      <Link href="/browse" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, color: "var(--fg-mute)", textDecoration: "underline" }}>
+        <ArrowLeft style={{ width: 16, height: 16 }} /> Back to browse
       </Link>
     </div>
   );
 
   if (!app) return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-      <Loader2 className="w-6 h-6 animate-spin text-zinc-300 dark:text-zinc-600" />
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+      <Loader2 style={{ width: 24, height: 24, color: "var(--fg-dim)", animation: "spin 1s linear infinite" }} />
     </div>
   );
 
@@ -508,62 +517,64 @@ export default function AppDetailPage({ params }: { params: Promise<{ slug: stri
   const c = CAT_COLOR[app.category] ?? DEFAULT_CAT;
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", color: "var(--fg)" }}>
 
       <Nav />
 
-      <main className="flex-1">
+      <main style={{ flex: 1 }}>
         {/* app hero band */}
-        <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-          <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8">
+        <div style={{ borderBottom: "1px solid var(--line)", background: "var(--bg-1)" }}>
+          <div style={{ maxWidth: 1240, margin: "0 auto", padding: "32px 32px" }}>
             <Link
               href="/browse"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors mb-6"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500, color: "var(--fg-dim)", textDecoration: "none", marginBottom: 24, transition: "color .15s ease" }}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = "var(--fg-mute)")}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = "var(--fg-dim)")}
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Browse
+              <ArrowLeft style={{ width: 14, height: 14 }} /> Browse
             </Link>
 
-            <div className="flex items-start gap-5">
-              <div className="w-16 h-16 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center shrink-0">
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 20 }}>
+              <div style={{ width: 64, height: 64, borderRadius: 16, background: "var(--bg-2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 {app.logo_url
-                  ? <img src={app.logo_url} alt={app.name} className="w-10 h-10 object-contain rounded-lg" />
-                  : <AppIcon siSlug={app.si_slug} appSlug={app.slug} fallbackLetter={app.name.charAt(0)} size={32} className="text-zinc-500 dark:text-zinc-400" />
+                  ? <img src={app.logo_url} alt={app.name} style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 10 }} />
+                  : <AppIcon siSlug={app.si_slug} appSlug={app.slug} fallbackLetter={app.name.charAt(0)} size={32} className="text-[var(--fg-mute)]" />
                 }
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                  <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">{app.name}</h1>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <h1 style={{ fontSize: 28, fontWeight: 900, letterSpacing: "-0.03em", color: "var(--fg)", margin: 0 }}>{app.name}</h1>
                   {app.featured && (
-                    <span className="inline-flex items-center rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[11px] font-bold px-2.5 py-0.5 uppercase tracking-wide">
+                    <span style={{ fontSize: 11, fontWeight: 700, background: "var(--primary)", color: "var(--primary-ink)", borderRadius: 999, padding: "3px 10px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       Featured
                     </span>
                   )}
                   {app.replaces && (
-                    <span className={`inline-flex items-center rounded-full ${c.bg} ${c.text} ${c.border} border text-[11px] font-semibold px-2.5 py-0.5`}>
+                    <span className={`${c.bg} ${c.text} ${c.border}`} style={{ display: "inline-flex", alignItems: "center", borderRadius: 999, border: "1px solid", fontSize: 11, fontWeight: 600, padding: "3px 10px" }}>
                       vs {app.replaces}
                     </span>
                   )}
                 </div>
-                <p className="text-zinc-500 dark:text-zinc-400 text-[15px] leading-relaxed">{app.tagline}</p>
+                <p style={{ color: "var(--fg-mute)", fontSize: 15, lineHeight: 1.6, margin: 0 }}>{app.tagline}</p>
 
-                <div className="flex flex-wrap items-center gap-3 mt-3">
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, marginTop: 12 }}>
                   {app.stars > 0 && (
-                    <span className="flex items-center gap-1 text-xs font-mono text-zinc-500 dark:text-zinc-400">
-                      <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontFamily: "var(--font-geist-mono)", color: "var(--fg-mute)" }}>
+                      <Star style={{ width: 14, height: 14, fill: "#facc15", color: "#facc15" }} />
                       {fmtStars} stars
                     </span>
                   )}
                   {app.license && (
-                    <span className="flex items-center gap-1 text-xs font-mono text-zinc-500 dark:text-zinc-400">
-                      <Shield className="w-3 h-3" /> {app.license}
+                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontFamily: "var(--font-geist-mono)", color: "var(--fg-mute)" }}>
+                      <Shield style={{ width: 12, height: 12 }} /> {app.license}
                     </span>
                   )}
                   {app.language && (
-                    <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">{app.language}</span>
+                    <span style={{ fontSize: 12, fontFamily: "var(--font-geist-mono)", color: "var(--fg-mute)" }}>{app.language}</span>
                   )}
                   {app.category && (
-                    <span className={`inline-flex items-center gap-1 text-xs font-medium ${c.text}`}>
-                      <Package className="w-3 h-3" /> {app.category}
+                    <span className={c.text} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 500 }}>
+                      <Package style={{ width: 12, height: 12 }} /> {app.category}
                     </span>
                   )}
                 </div>
@@ -572,51 +583,55 @@ export default function AppDetailPage({ params }: { params: Promise<{ slug: stri
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-10">
-          <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
-
-            {/* Left */}
-            <div className="flex-1 flex flex-col gap-6">
+        <div style={{ maxWidth: 1240, margin: "0 auto", padding: "40px 32px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 32 }} className="lg:flex-row lg:gap-48">
+            <div className="flex flex-col gap-6 flex-1">
 
               {app.description && (
-                <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
-                  <h2 className="text-[11px] font-bold mb-3 uppercase tracking-widest text-zinc-400 dark:text-zinc-600">About</h2>
-                  <p className="text-[15px] text-zinc-600 dark:text-zinc-400 leading-relaxed">{app.description}</p>
+                <div style={{ borderRadius: 16, border: "1px solid var(--line)", background: "var(--bg-1)", padding: 24 }}>
+                  <h2 style={{ fontSize: 11, fontWeight: 700, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--fg-dim)", margin: "0 0 12px" }}>About</h2>
+                  <p style={{ fontSize: 15, color: "var(--fg-mute)", lineHeight: 1.6, margin: 0 }}>{app.description}</p>
                 </div>
               )}
 
               {features.length > 0 && (
-                <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
-                  <h2 className="text-[11px] font-bold mb-4 uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Features</h2>
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div style={{ borderRadius: 16, border: "1px solid var(--line)", background: "var(--bg-1)", padding: 24 }}>
+                  <h2 style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--fg-dim)", margin: "0 0 16px" }}>Features</h2>
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
                     {features.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-sm text-zinc-600 dark:text-zinc-400">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />{f}
+                      <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, color: "var(--fg-mute)" }}>
+                        <CheckCircle2 style={{ width: 16, height: 16, color: "#10b981", marginTop: 2, flexShrink: 0 }} />{f}
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2.5">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                 {app.github_url && (
                   <a href={app.github_url} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
-                    <GithubIcon className="w-4 h-4" /> View on GitHub <ExternalLink className="w-3 h-3 text-zinc-300 dark:text-zinc-600" />
+                    style={{ display: "inline-flex", alignItems: "center", gap: 8, borderRadius: 12, border: "1px solid var(--line-2)", background: "var(--bg-1)", padding: "10px 16px", fontSize: 14, fontWeight: 500, color: "var(--fg-mute)", textDecoration: "none", transition: "background .15s ease, color .15s ease" }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-2)"; (e.currentTarget as HTMLElement).style.color = "var(--fg)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-1)"; (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)"; }}
+                  >
+                    <GithubIcon className="w-4 h-4" /> View on GitHub <ExternalLink style={{ width: 12, height: 12, color: "var(--fg-dim)" }} />
                   </a>
                 )}
                 {app.website_url && (
                   <a href={app.website_url} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
-                    <Globe className="w-4 h-4" /> Website <ExternalLink className="w-3 h-3 text-zinc-300 dark:text-zinc-600" />
+                    style={{ display: "inline-flex", alignItems: "center", gap: 8, borderRadius: 12, border: "1px solid var(--line-2)", background: "var(--bg-1)", padding: "10px 16px", fontSize: 14, fontWeight: 500, color: "var(--fg-mute)", textDecoration: "none", transition: "background .15s ease, color .15s ease" }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-2)"; (e.currentTarget as HTMLElement).style.color = "var(--fg)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-1)"; (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)"; }}
+                  >
+                    <Globe style={{ width: 16, height: 16 }} /> Website <ExternalLink style={{ width: 12, height: 12, color: "var(--fg-dim)" }} />
                   </a>
                 )}
               </div>
             </div>
 
             {/* Right — deploy panel + Barfy */}
-            <div className="w-full lg:w-72 shrink-0">
-              <div className="sticky top-20 flex flex-col gap-4">
+            <div style={{ width: "100%", maxWidth: 288, flexShrink: 0 }}>
+              <div style={{ position: "sticky", top: 80, display: "flex", flexDirection: "column", gap: 16 }}>
                 <DeployPanel app={app} onLive={setLiveUrl} />
                 {liveUrl && (
                   <Barfy appSlug={app.slug} appName={app.name} liveUrl={liveUrl} />
@@ -627,11 +642,14 @@ export default function AppDetailPage({ params }: { params: Promise<{ slug: stri
         </div>
       </main>
 
-      <footer className="border-t border-zinc-200 dark:border-zinc-800 mt-auto bg-white dark:bg-zinc-950">
-        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-5 flex items-center justify-between">
-          <span className="font-mono text-[11px] font-bold text-zinc-400 dark:text-zinc-600">barf. © 2026</span>
-          <Link href="/browse" className="text-[11px] text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors flex items-center gap-1">
-            <ArrowLeft className="w-3 h-3" /> Browse
+      <footer style={{ borderTop: "1px solid var(--line)", marginTop: "auto", background: "color-mix(in oklab, var(--bg) 90%, black)" }}>
+        <div style={{ maxWidth: 1240, margin: "0 auto", padding: "20px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontFamily: "var(--font-geist-mono)", fontSize: 11, fontWeight: 700, color: "var(--fg-dim)" }}>barf. © 2026</span>
+          <Link href="/browse" style={{ fontSize: 11, color: "var(--fg-dim)", textDecoration: "none", display: "flex", alignItems: "center", gap: 4, transition: "color .2s ease" }}
+            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = "var(--fg-mute)")}
+            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = "var(--fg-dim)")}
+          >
+            <ArrowLeft style={{ width: 12, height: 12 }} /> Browse
           </Link>
         </div>
       </footer>

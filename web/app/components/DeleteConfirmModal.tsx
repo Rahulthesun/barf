@@ -2,6 +2,19 @@
 
 import { Trash2, RefreshCw } from "lucide-react";
 
+const modalCard: React.CSSProperties = {
+  background: "var(--bg-1)", border: "1px solid var(--line)",
+  borderRadius: 20, maxWidth: 380, width: "100%", margin: "0 16px",
+  padding: 24, boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+};
+
+const cancelBtn: React.CSSProperties = {
+  flex: 1, borderRadius: 12, border: "1px solid var(--line-2)",
+  background: "transparent", padding: "10px 0",
+  fontSize: 14, fontWeight: 500, color: "var(--fg-mute)",
+  cursor: "pointer", transition: "background .15s, color .15s",
+};
+
 export function DeleteConfirmModal({
   appName,
   onConfirm,
@@ -13,39 +26,38 @@ export function DeleteConfirmModal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
       onClick={onCancel}
     >
-      <div
-        className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl max-w-sm w-full mx-4 p-6"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/40 flex items-center justify-center">
-            <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+      <div style={modalCard} onClick={e => e.stopPropagation()}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center" }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(239,68,68,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Trash2 style={{ width: 20, height: 20, color: "#f87171" }} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-              Delete {appName}?
-            </h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 leading-relaxed">
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--fg)" }}>Delete {appName}?</h2>
+            <p style={{ fontSize: 13, color: "var(--fg-mute)", marginTop: 8, lineHeight: 1.6 }}>
               This will permanently destroy your{" "}
-              <span className="font-semibold text-zinc-700 dark:text-zinc-300">{appName}</span>{" "}
+              <span style={{ fontWeight: 600, color: "var(--fg)" }}>{appName}</span>{" "}
               container and{" "}
-              <span className="font-semibold text-red-600 dark:text-red-400">all its data</span>.
+              <span style={{ fontWeight: 600, color: "#f87171" }}>all its data</span>.
               There is no way to recover it.
             </p>
           </div>
-          <div className="flex gap-2 w-full pt-1">
+          <div style={{ display: "flex", gap: 8, width: "100%", paddingTop: 4 }}>
             <button
               onClick={onCancel}
-              className="flex-1 rounded-xl border border-zinc-200 dark:border-zinc-700 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              style={cancelBtn}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-2)"; (e.currentTarget as HTMLElement).style.color = "var(--fg)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)"; }}
             >
               Cancel
             </button>
             <button
               onClick={onConfirm}
-              className="flex-1 rounded-xl bg-red-600 hover:bg-red-700 text-white py-2.5 text-sm font-semibold transition-colors"
+              style={{ flex: 1, borderRadius: 12, background: "#dc2626", padding: "10px 0", fontSize: 14, fontWeight: 600, color: "#fff", border: "none", cursor: "pointer", transition: "background .15s" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#b91c1c"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#dc2626"; }}
             >
               Delete &amp; lose all data
             </button>
@@ -67,39 +79,38 @@ export function RedeployConfirmModal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
       onClick={onCancel}
     >
-      <div
-        className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl max-w-sm w-full mx-4 p-6"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-950/40 flex items-center justify-center">
-            <RefreshCw className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+      <div style={modalCard} onClick={e => e.stopPropagation()}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center" }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(245,158,11,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <RefreshCw style={{ width: 20, height: 20, color: "#fbbf24" }} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-              Redeploy {appName}?
-            </h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 leading-relaxed">
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--fg)" }}>Redeploy {appName}?</h2>
+            <p style={{ fontSize: 13, color: "var(--fg-mute)", marginTop: 8, lineHeight: 1.6 }}>
               This will destroy your current container and{" "}
-              <span className="font-semibold text-amber-600 dark:text-amber-400">all its data</span>,
+              <span style={{ fontWeight: 600, color: "#fbbf24" }}>all its data</span>,
               then fresh-install{" "}
-              <span className="font-semibold text-zinc-700 dark:text-zinc-300">{appName}</span>.
+              <span style={{ fontWeight: 600, color: "var(--fg)" }}>{appName}</span>.
               There is no way to recover existing data.
             </p>
           </div>
-          <div className="flex gap-2 w-full pt-1">
+          <div style={{ display: "flex", gap: 8, width: "100%", paddingTop: 4 }}>
             <button
               onClick={onCancel}
-              className="flex-1 rounded-xl border border-zinc-200 dark:border-zinc-700 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              style={cancelBtn}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-2)"; (e.currentTarget as HTMLElement).style.color = "var(--fg)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)"; }}
             >
               Cancel
             </button>
             <button
               onClick={onConfirm}
-              className="flex-1 rounded-xl bg-amber-500 hover:bg-amber-600 text-white py-2.5 text-sm font-semibold transition-colors"
+              style={{ flex: 1, borderRadius: 12, background: "var(--primary)", padding: "10px 0", fontSize: 14, fontWeight: 600, color: "var(--primary-ink)", border: "none", cursor: "pointer", transition: "opacity .15s" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.88"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
             >
               Redeploy from scratch
             </button>

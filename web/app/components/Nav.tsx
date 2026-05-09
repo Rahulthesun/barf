@@ -37,93 +37,135 @@ export function Nav() {
   ];
 
   const isActive = (href: string) =>
-    href === "/browse"
-      ? path.startsWith("/browse")
-      : path === href;
+    href === "/browse" ? path.startsWith("/browse") : path === href;
 
   return (
-    <header className={`sticky top-0 z-50 transition-all duration-200 ${
-      scrolled
-        ? "bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 shadow-sm"
-        : "bg-white/80 dark:bg-zinc-950/80 backdrop-blur-sm border-b border-zinc-100 dark:border-zinc-900"
-    }`}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 h-14 flex items-center justify-between gap-4">
+    <header style={{
+      position: "sticky", top: 0, zIndex: 50,
+      backdropFilter: "blur(14px)",
+      background: scrolled
+        ? "color-mix(in oklab, var(--bg) 92%, transparent)"
+        : "color-mix(in oklab, var(--bg) 78%, transparent)",
+      borderBottom: `1px solid ${scrolled ? "var(--line-2)" : "var(--line)"}`,
+      transition: "background .2s ease, border-color .2s ease",
+    }}>
+      <div style={{
+        maxWidth: 1240, margin: "0 auto", padding: "0 32px",
+        height: 64, display: "flex", alignItems: "center",
+        justifyContent: "space-between", gap: 16,
+      }}>
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0 group">
-          <div className="w-6 h-6 rounded-md overflow-hidden ring-1 ring-zinc-200 dark:ring-zinc-800 group-hover:ring-[var(--primary)] transition-all">
-            <Image src="/assets/logo.jpg" alt="barf" width={24} height={24} className="object-cover" />
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+          <div style={{ width: 26, height: 26, borderRadius: 6, overflow: "hidden", border: "1px solid var(--line-2)", flexShrink: 0 }}>
+            <Image src="/assets/logo.jpg" alt="barf" width={26} height={26} style={{ objectFit: "cover", display: "block" }} />
           </div>
-          <span className="font-mono text-[13px] font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-            barf.
+          <span style={{ fontFamily: "var(--font-geist-mono)", fontSize: 15, fontWeight: 900, letterSpacing: "-0.04em", color: "var(--fg)" }}>
+            barf<span style={{ color: "var(--primary)", display: "inline-block", animation: "dotPulse 2.4s var(--ease) infinite" }}>.</span>
           </span>
         </Link>
 
         {/* Center nav */}
-        <nav className="hidden sm:flex items-center gap-1">
-          {links.map(({ label, href }) => (
-            <Link
-              key={label}
-              href={href}
-              className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
-                isActive(href)
-                  ? "text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800"
-                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-900"
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
+        <nav style={{ display: "flex", alignItems: "center", gap: 2 }}>
+          {links.map(({ label, href }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={label}
+                href={href}
+                style={{
+                  padding: "6px 12px", borderRadius: 8, fontSize: 13, fontWeight: 500,
+                  textDecoration: "none", transition: "background .15s ease, color .15s ease",
+                  background: active ? "color-mix(in oklab, var(--primary) 10%, var(--bg-2))" : "transparent",
+                  color: active ? "var(--fg)" : "var(--fg-mute)",
+                }}
+                onMouseEnter={e => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.color = "var(--fg)";
+                    (e.currentTarget as HTMLElement).style.background = "var(--bg-2)";
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!active) {
+                    (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)";
+                    (e.currentTarget as HTMLElement).style.background = "transparent";
+                  }
+                }}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Right side */}
-        <div className="flex items-center gap-1.5">
-          {/* GitHub */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <a
-            href="https://github.com"
+            href="https://github.com/Rahulthesun/barf"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:flex w-8 h-8 rounded-lg items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
             aria-label="GitHub"
+            style={{ display: "flex", width: 32, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center", color: "var(--fg-mute)", textDecoration: "none", transition: "background .15s ease, color .15s ease" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "var(--fg)"; (e.currentTarget as HTMLElement).style.background = "var(--bg-2)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
           >
             <GithubIcon className="w-[15px] h-[15px]" />
           </a>
 
-          <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-800 mx-0.5 hidden sm:block" />
+          <div style={{ width: 1, height: 20, background: "var(--line-2)" }} />
 
           {email ? (
             <>
               <Link
                 href="/dashboard"
-                className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
-                  path === "/dashboard"
-                    ? "text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800"
-                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                }`}
+                style={{
+                  padding: "6px 12px", borderRadius: 8, fontSize: 13, fontWeight: 500,
+                  textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6,
+                  transition: "background .15s ease, color .15s ease",
+                  background: path === "/dashboard" ? "color-mix(in oklab, var(--primary) 10%, var(--bg-2))" : "transparent",
+                  color: path === "/dashboard" ? "var(--fg)" : "var(--fg-mute)",
+                }}
+                onMouseEnter={e => {
+                  if (path !== "/dashboard") {
+                    (e.currentTarget as HTMLElement).style.color = "var(--fg)";
+                    (e.currentTarget as HTMLElement).style.background = "var(--bg-2)";
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (path !== "/dashboard") {
+                    (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)";
+                    (e.currentTarget as HTMLElement).style.background = "transparent";
+                  }
+                }}
               >
-                <LayoutDashboard className="w-3.5 h-3.5" />
+                <LayoutDashboard style={{ width: 14, height: 14 }} />
                 Dashboard
               </Link>
               <button
                 onClick={handleSignOut}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, fontSize: 13, fontWeight: 500, background: "transparent", color: "var(--fg-mute)", border: "none", cursor: "pointer", fontFamily: "inherit", transition: "background .15s ease, color .15s ease" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "var(--red)"; (e.currentTarget as HTMLElement).style.background = "rgba(255,91,91,0.08)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
               >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sign out</span>
+                <LogOut style={{ width: 14, height: 14 }} />
+                Sign out
               </button>
             </>
           ) : (
             <>
               <Link
                 href="/login"
-                className="hidden sm:flex px-3 py-1.5 rounded-lg text-[13px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all"
+                style={{ padding: "6px 12px", borderRadius: 8, fontSize: 13, fontWeight: 500, color: "var(--fg-mute)", textDecoration: "none", transition: "color .15s ease, background .15s ease" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "var(--fg)"; (e.currentTarget as HTMLElement).style.background = "var(--bg-2)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "var(--fg-mute)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
               >
                 Sign in
               </Link>
               <Link
                 href="/signup"
-                className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-[13px] font-semibold text-white transition-colors shadow-sm"
-                style={{ background: "var(--primary)" }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, color: "var(--primary-ink)", textDecoration: "none", background: "var(--primary)", boxShadow: "0 0 0 1px var(--primary-glow), 0 4px 16px -4px var(--primary-glow)", transition: "transform .15s ease" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
               >
                 Get started
               </Link>
